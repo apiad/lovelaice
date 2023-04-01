@@ -22,7 +22,9 @@ Here's a non-exhaustive list of features/commands that are implemented or planne
 - [ ] Generate headings and titles
 - [ ] Summarize large chunks of text
 
-## Contribution
+## Usage
+
+This project is in an alpha development stage, and as such it is not directly installable as an extension. To take it for a spin, you have to clone the project and setup a development environment.
 
 ### Install Server and Client Dependencies
 
