@@ -46,7 +46,9 @@ def _summarize(text):
 
 
 def _expand(text):
-    return _complete_text("Expand the following text, explaining each idea in more detail:\n\n" + text)
+    return _complete_text(
+        "Expand the following text, explaining each idea in more detail:\n\n" + text
+    )
 
 
 def _brainstorm(text):
@@ -101,6 +103,7 @@ def fix_syntax_and_grammar(ls: Server, args):
         return
 
     text = doc.source[start:end]
+    ls.show_message("⌛ Querying the OpenAI API...")
     fix = _fix_syntax_and_grammar(text)
 
     ls.apply_edit(WorkspaceEdit(document_changes=[_edit_doc(doc, range, fix)]))
@@ -122,6 +125,7 @@ def complete_text(ls: Server, args):
         return
 
     text = doc.source[start:end]
+    ls.show_message("⌛ Querying the OpenAI API...")
     completion = _complete_text(text)
 
     ls.apply_edit(
@@ -145,10 +149,13 @@ def summarize(ls: Server, args):
         return
 
     text = doc.source[start:end]
+    ls.show_message("⌛ Querying the OpenAI API...")
     summary = _summarize(text)
 
     ls.apply_edit(
-        WorkspaceEdit(document_changes=[_edit_doc(doc, range, text + "\n\nTL;DR: " + summary)])
+        WorkspaceEdit(
+            document_changes=[_edit_doc(doc, range, text + "\n\nTL;DR: " + summary)]
+        )
     )
     ls.show_message("Inserted %i characters" % len(summary))
 
@@ -168,11 +175,10 @@ def expand(ls: Server, args):
         return
 
     text = doc.source[start:end]
+    ls.show_message("⌛ Querying the OpenAI API...")
     replacement = _expand(text)
 
-    ls.apply_edit(
-        WorkspaceEdit(document_changes=[_edit_doc(doc, range, replacement)])
-    )
+    ls.apply_edit(WorkspaceEdit(document_changes=[_edit_doc(doc, range, replacement)]))
     ls.show_message("Replaced %i characters" % len(replacement))
 
 
@@ -191,9 +197,12 @@ def brainstorm(ls: Server, args):
         return
 
     text = doc.source[start:end]
+    ls.show_message("⌛ Querying the OpenAI API...")
     replacement = _brainstorm(text)
 
     ls.apply_edit(
-        WorkspaceEdit(document_changes=[_edit_doc(doc, range, text + "\n\n" + replacement)])
+        WorkspaceEdit(
+            document_changes=[_edit_doc(doc, range, text + "\n\n" + replacement)]
+        )
     )
     ls.show_message("Inserted %i characters" % len(replacement))

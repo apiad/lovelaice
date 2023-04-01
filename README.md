@@ -15,10 +15,10 @@ Overall, Lovelaice aims to be a powerful writing assistant for VSCode that offer
 
 ## Features
 
-Here's a non-exhaustive list of features/commands that are implemented or planned.
+This is a non-exhaustive list of features/commands that are implemented or planned.
 
 - [x] Fix grammar and spelling
-- [x] Arbitary text completion
+- [x] Arbitrary text completion
 - [x] Summarize large chunks of text
 - [x] Expand fragments of text
 - [x] Brainstorm ideas based on a fragment of text
