@@ -17,10 +17,10 @@ Here's a non-exhaustive list of features/commands that are implemented or planne
 
 - [x] Fix grammar and spelling
 - [x] Arbitary text completion
+- [x] Summarize large chunks of text
 - [ ] Change the tone/formality of text
 - [ ] Detect and change the sentiment of text
 - [ ] Generate headings and titles
-- [ ] Summarize large chunks of text
 
 ## Usage
 

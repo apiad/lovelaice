@@ -41,6 +41,10 @@ def _complete_text(text):
     )["choices"][0]["text"]
 
 
+def _summarize(text):
+    return _complete_text(text + "\n\nTL;DR:")
+
+
 def _edit_doc(doc, range, new_text):
     return TextDocumentEdit(
         text_document=OptionalVersionedTextDocumentIdentifier(
@@ -68,6 +72,7 @@ def on_code_action(ls: Server, params: CodeActionParams):
     return [
         Command("Fix grammar and spelling", "fixSyntaxAndGrammar", (uri, range)),
         Command("Add text completion", "completeText", (uri, range)),
+        Command("Summarize", "summarize", (uri, range)),
     ]
 
 
@@ -81,7 +86,7 @@ def fix_syntax_and_grammar(ls: Server, args):
     start = doc.offset_at_position(range.start)
     end = doc.offset_at_position(range.end)
 
-    if abs(start - end) <= 3:
+    if abs(start - end) <= 20:
         ls.show_message("Select a larger fragment of text.", MessageType.Error)
         return
 
@@ -94,7 +99,7 @@ def fix_syntax_and_grammar(ls: Server, args):
 
 @server.thread()
 @server.command("completeText")
-def fix_syntax_and_grammar(ls: Server, args):
+def complete_text(ls: Server, args):
     uri, range = args
     range = Range(start=Position(**range["start"]), end=Position(**range["end"]))
 
@@ -113,3 +118,26 @@ def fix_syntax_and_grammar(ls: Server, args):
         WorkspaceEdit(document_changes=[_edit_doc(doc, range, text + completion)])
     )
     ls.show_message("Inserted %i characters" % len(completion))
+
+
+@server.thread()
+@server.command("summarize")
+def summarize(ls: Server, args):
+    uri, range = args
+    range = Range(start=Position(**range["start"]), end=Position(**range["end"]))
+
+    doc: Document = ls.workspace.get_document(uri)
+    start = doc.offset_at_position(range.start)
+    end = doc.offset_at_position(range.end)
+
+    if abs(start - end) <= 100:
+        ls.show_message("Select a larger fragment of text.", MessageType.Error)
+        return
+
+    text = doc.source[start:end]
+    summary = _summarize(text)
+
+    ls.apply_edit(
+        WorkspaceEdit(document_changes=[_edit_doc(doc, range, text + "\n\nTL;DR: " + summary)])
+    )
+    ls.show_message("Inserted %i characters" % len(summary))
