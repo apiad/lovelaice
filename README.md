@@ -1,24 +1,37 @@
-# Example JSON VSCode extension with example Pygls Language Server
+# Lovelaice - An AI-powered writing assistant for VSCode
 
-This is a slightly more detailed example Language Server than the Hello World one. Like Hello World, it uses LSP Completions as its central feature, but adds some long-running background work to demonstrate methods to handle asynchronicity and progress notifications.
+Lovelaice is a writing assistant for VSCode. It is implemented as a Python Language Server that works on Markdown files.
+It contains commands and tools to generate, format, revise, and change prose, using the OpenAI API and several of its models.
 
-Although we include a complete VSCode client here, you may also be interested in Microsoft's [client template for Python tools](https://github.com/microsoft/vscode-python-tools-extension-template). It is focussed on Python-related Language Server tooling, but it is specifically tailored to Pygls, so may have some unique insights.
+Lovelaice aims to support features such as auto-completion, text formatting, and revision suggestions, all powered by OpenAI's models. It will also provide tools to generate summaries, headlines, and titles, and provide feedback on sentence structure.
 
-## Install Server Dependencies
+In addition to its writing assistance capabilities, Lovelaice will also offer AI-assisted text analytics. This allows users to analyze their text for sentiment and key phrases, as well as generate summaries.
 
-1. `python -m venv env`
-1. `python -m pip install -e .` from root directory
-1. Create `.vscode/settings.json` file and set `python.interpreterPath` to point to your python environment where `pygls` is installed
+Overall, Lovelaice aims to be a powerful writing assistant for VSCode that offers a wide range of features to help users write better documents more quickly and accurately.
 
-## Install Client Dependencies
+**NOTE**: You will need to have an OpenAI account and setup your token for this extension to work.
 
-Open terminal and execute following commands:
+## Features
 
-1. `npm install`
-1. `cd client/ && npm install`
+Here's a non-exhaustive list of features/commands that are implemented or planned.
 
-## Run Example
+- [x] Fix grammar and spelling
+- [ ] Arbitrary code completion
+- [ ] Change the tone/formality of text
+
+## Contribution
+
+### Install Server and Client Dependencies
+
+This project uses Poetry and Node/NPM, so make sure to have those installed.
+
+1. `poetry install`
+2. `npm install`
+3. `cd client/ && npm install`
+4. Create `.env` and add your OpenAI token as `OPENAI_KEY`.
+
+### Run the extension in debug mode
 
 1. Open this directory in VS Code
-1. Open debug view (`ctrl + shift + D`)
-1. Select `Server + Client` and press `F5`
+2. Open debug view (`ctrl + shift + D`)
+3. Select `Server + Client` and press `F5`

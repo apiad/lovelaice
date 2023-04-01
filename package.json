@@ -15,13 +15,7 @@
     "onLanguage:markdown"
   ],
   "contributes": {
-    "commands": [
-      {
-        "command": "fixSyntaxAndGrammar",
-        "title": "Fix syntax and grammar",
-        "category": "Lovelaice"
-      }
-    ],
+    "commands": [],
     "configuration": {
       "type": "object",
       "title": "Lovelaice Server Configuration",

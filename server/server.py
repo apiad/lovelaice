@@ -29,6 +29,18 @@ def _fix_syntax_and_grammar(text):
     )["choices"][0]["text"]
 
 
+def _complete_text(text):
+    return openai.Completion.create(
+        model="text-davinci-003",
+        prompt=text,
+        temperature=0.7,
+        max_tokens=256,
+        top_p=1,
+        frequency_penalty=0,
+        presence_penalty=0,
+    )["choices"][0]["text"]
+
+
 def _edit_doc(doc, range, new_text):
     return TextDocumentEdit(
         text_document=OptionalVersionedTextDocumentIdentifier(
@@ -53,7 +65,10 @@ def on_code_action(ls: Server, params: CodeActionParams):
     uri = params.text_document.uri
     range = params.range
 
-    return [Command("Fix grammar and spelling", "fixSyntaxAndGrammar", (uri, range))]
+    return [
+        Command("Fix grammar and spelling", "fixSyntaxAndGrammar", (uri, range)),
+        Command("Add text completion", "completeText", (uri, range)),
+    ]
 
 
 @server.thread()
@@ -75,3 +90,26 @@ def fix_syntax_and_grammar(ls: Server, args):
 
     ls.apply_edit(WorkspaceEdit(document_changes=[_edit_doc(doc, range, fix)]))
     ls.show_message("Replaced %i characters" % len(text))
+
+
+@server.thread()
+@server.command("completeText")
+def fix_syntax_and_grammar(ls: Server, args):
+    uri, range = args
+    range = Range(start=Position(**range["start"]), end=Position(**range["end"]))
+
+    doc: Document = ls.workspace.get_document(uri)
+    start = doc.offset_at_position(range.start)
+    end = doc.offset_at_position(range.end)
+
+    if abs(start - end) <= 20:
+        ls.show_message("Select a larger fragment of text.", MessageType.Error)
+        return
+
+    text = doc.source[start:end]
+    completion = _complete_text(text)
+
+    ls.apply_edit(
+        WorkspaceEdit(document_changes=[_edit_doc(doc, range, text + completion)])
+    )
+    ls.show_message("Inserted %i characters" % len(completion))
