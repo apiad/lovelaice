@@ -40,3 +40,13 @@ This project uses Poetry and Node/NPM, so make sure to have those installed.
 1. Open this directory in VS Code
 2. Open debug view (`ctrl + shift + D`)
 3. Select `Server + Client` and press `F5`
+
+This will open a new VSCode window with the extension activated.
+
+### Use it
+
+Now open a Markdown document and start writing. Select a chunk of text, and hit `Ctrl+.` to open the Code Action popup menu and select a magic command.
+
+## Contribution
+
+Code is MIT, so you know the drill. Fork, test, PR, rinse and repeat.
