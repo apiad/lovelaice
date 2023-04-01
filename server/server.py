@@ -30,12 +30,12 @@ def _fix_syntax_and_grammar(text):
     )["choices"][0]["text"].strip()
 
 
-def _complete_text(text):
+def _complete_text(text, temperature=0.7, max_tokens=256):
     return openai.Completion.create(
         model="text-davinci-003",
         prompt=text,
-        temperature=0.7,
-        max_tokens=256,
+        temperature=temperature,
+        max_tokens=max_tokens,
         top_p=1,
         frequency_penalty=0,
         presence_penalty=0,
@@ -57,6 +57,10 @@ def _define(paragraph, text):
         f'In the following paragraph, what is the meaning of the phrase "{text}":\n\n'
         + paragraph + "\n\n"
     )
+
+
+def _evaluate(text):
+    return _complete_text("Answer with a short phrase, what is the tone, difficulty (low, medium, high), audience, and overall sentiment of the following text:\n\n" + text + "\n\n", temperature=0)
 
 
 def _brainstorm(text):
@@ -94,6 +98,7 @@ def on_code_action(ls: Server, params: CodeActionParams):
         Command("💡 Brainstorm", "brainstorm", (uri, range)),
         Command("🚩 Summarize", "summarize", (uri, range)),
         Command("🔧 Quick fix", "fixGrammar", (uri, range)),
+        Command("💖 Evaluate", "evaluate", (uri, range)),
     ]
 
 
@@ -242,3 +247,23 @@ def define(ls: Server, args):
     definition = _define(paragraph, text)
 
     ls.show_message("🔎 " + definition)
+
+@server.thread()
+@server.command("evaluate")
+def evaluate(ls: Server, args):
+    uri, range = args
+    range = Range(start=Position(**range["start"]), end=Position(**range["end"]))
+
+    doc: Document = ls.workspace.get_document(uri)
+    start = doc.offset_at_position(range.start)
+    end = doc.offset_at_position(range.end)
+
+    if abs(start - end) >= 10:
+        text = doc.source[start:end]
+    else:
+        text = extract_paragraph_around(doc.source, start, end)
+
+    ls.show_message("⌛ Querying the OpenAI API...")
+    evaluation = _evaluate(text)
+
+    ls.show_message("💖 " + evaluation)
