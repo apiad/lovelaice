@@ -13,6 +13,7 @@ from lsprotocol.types import (
 
 from pygls.server import LanguageServer
 from pygls.workspace import Document, Workspace
+from .utils import extract_paragraph_around
 import openai
 import os
 
@@ -51,6 +52,13 @@ def _expand(text):
     )
 
 
+def _define(paragraph, text):
+    return _complete_text(
+        f'In the following paragraph, what is the meaning of the phrase "{text}":\n\n'
+        + paragraph + "\n\n"
+    )
+
+
 def _brainstorm(text):
     return _complete_text("Brainstorm ideas based on the following premise:\n\n" + text)
 
@@ -80,7 +88,8 @@ def on_code_action(ls: Server, params: CodeActionParams):
     range = params.range
 
     return [
-        Command("🪄 Continue the text", "completeText", (uri, range)),
+        Command("🪄 Continue this text", "completeText", (uri, range)),
+        Command("🔍 What does this mean?", "define", (uri, range)),
         Command("✨ Expand & explain", "expand", (uri, range)),
         Command("💡 Brainstorm", "brainstorm", (uri, range)),
         Command("🚩 Summarize", "summarize", (uri, range)),
@@ -206,3 +215,30 @@ def brainstorm(ls: Server, args):
         )
     )
     ls.show_message("Inserted %i characters" % len(replacement))
+
+
+@server.thread()
+@server.command("define")
+def define(ls: Server, args):
+    uri, range = args
+    range = Range(start=Position(**range["start"]), end=Position(**range["end"]))
+
+    doc: Document = ls.workspace.get_document(uri)
+    start = doc.offset_at_position(range.start)
+    end = doc.offset_at_position(range.end)
+
+    if abs(start - end) <= 3:
+        ls.show_message("Select a larger fragment of text.", MessageType.Error)
+        return
+
+    if abs(start - end) >= 128:
+        ls.show_message("Select a shorter fragment of text.", MessageType.Error)
+        return
+
+    text = doc.source[start:end]
+    paragraph = extract_paragraph_around(doc.source, start, end)
+
+    ls.show_message("⌛ Querying the OpenAI API...")
+    definition = _define(paragraph, text)
+
+    ls.show_message("🔎 " + definition)
