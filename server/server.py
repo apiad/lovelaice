@@ -26,7 +26,7 @@ def _fix_syntax_and_grammar(text):
         instruction="Fix the grammar and spelling mistakes",
         temperature=0.7,
         top_p=1,
-    )["choices"][0]["text"]
+    )["choices"][0]["text"].strip()
 
 
 def _complete_text(text):
@@ -38,11 +38,15 @@ def _complete_text(text):
         top_p=1,
         frequency_penalty=0,
         presence_penalty=0,
-    )["choices"][0]["text"]
+    )["choices"][0]["text"].strip()
 
 
 def _summarize(text):
     return _complete_text(text + "\n\nTL;DR:")
+
+
+def _expand(text):
+    return _complete_text("Expand the following text, explaining each idea in more detail:\n\n" + text)
 
 
 def _edit_doc(doc, range, new_text):
@@ -70,14 +74,15 @@ def on_code_action(ls: Server, params: CodeActionParams):
     range = params.range
 
     return [
-        Command("Fix grammar and spelling", "fixSyntaxAndGrammar", (uri, range)),
-        Command("Add text completion", "completeText", (uri, range)),
+        Command("Fix grammar and spelling", "fixGrammar", (uri, range)),
+        Command("Continue the text", "completeText", (uri, range)),
+        Command("Expand & explain", "expand", (uri, range)),
         Command("Summarize", "summarize", (uri, range)),
     ]
 
 
 @server.thread()
-@server.command("fixSyntaxAndGrammar")
+@server.command("fixGrammar")
 def fix_syntax_and_grammar(ls: Server, args):
     uri, range = args
     range = Range(start=Position(**range["start"]), end=Position(**range["end"]))
@@ -141,3 +146,26 @@ def summarize(ls: Server, args):
         WorkspaceEdit(document_changes=[_edit_doc(doc, range, text + "\n\nTL;DR: " + summary)])
     )
     ls.show_message("Inserted %i characters" % len(summary))
+
+
+@server.thread()
+@server.command("expand")
+def summarize(ls: Server, args):
+    uri, range = args
+    range = Range(start=Position(**range["start"]), end=Position(**range["end"]))
+
+    doc: Document = ls.workspace.get_document(uri)
+    start = doc.offset_at_position(range.start)
+    end = doc.offset_at_position(range.end)
+
+    if abs(start - end) <= 20:
+        ls.show_message("Select a larger fragment of text.", MessageType.Error)
+        return
+
+    text = doc.source[start:end]
+    replacement = _expand(text)
+
+    ls.apply_edit(
+        WorkspaceEdit(document_changes=[_edit_doc(doc, range, replacement)])
+    )
+    ls.show_message("Replaced %i characters" % len(replacement))
