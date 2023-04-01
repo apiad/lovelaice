@@ -49,6 +49,10 @@ def _expand(text):
     return _complete_text("Expand the following text, explaining each idea in more detail:\n\n" + text)
 
 
+def _brainstorm(text):
+    return _complete_text("Brainstorm ideas based on the following premise:\n\n" + text)
+
+
 def _edit_doc(doc, range, new_text):
     return TextDocumentEdit(
         text_document=OptionalVersionedTextDocumentIdentifier(
@@ -74,10 +78,11 @@ def on_code_action(ls: Server, params: CodeActionParams):
     range = params.range
 
     return [
-        Command("Fix grammar and spelling", "fixGrammar", (uri, range)),
-        Command("Continue the text", "completeText", (uri, range)),
-        Command("Expand & explain", "expand", (uri, range)),
-        Command("Summarize", "summarize", (uri, range)),
+        Command("🪄 Continue the text", "completeText", (uri, range)),
+        Command("✨ Expand & explain", "expand", (uri, range)),
+        Command("💡 Brainstorm", "brainstorm", (uri, range)),
+        Command("🚩 Summarize", "summarize", (uri, range)),
+        Command("🔧 Quick fix", "fixGrammar", (uri, range)),
     ]
 
 
@@ -150,7 +155,7 @@ def summarize(ls: Server, args):
 
 @server.thread()
 @server.command("expand")
-def summarize(ls: Server, args):
+def expand(ls: Server, args):
     uri, range = args
     range = Range(start=Position(**range["start"]), end=Position(**range["end"]))
 
@@ -169,3 +174,26 @@ def summarize(ls: Server, args):
         WorkspaceEdit(document_changes=[_edit_doc(doc, range, replacement)])
     )
     ls.show_message("Replaced %i characters" % len(replacement))
+
+
+@server.thread()
+@server.command("brainstorm")
+def brainstorm(ls: Server, args):
+    uri, range = args
+    range = Range(start=Position(**range["start"]), end=Position(**range["end"]))
+
+    doc: Document = ls.workspace.get_document(uri)
+    start = doc.offset_at_position(range.start)
+    end = doc.offset_at_position(range.end)
+
+    if abs(start - end) <= 20:
+        ls.show_message("Select a larger fragment of text.", MessageType.Error)
+        return
+
+    text = doc.source[start:end]
+    replacement = _brainstorm(text)
+
+    ls.apply_edit(
+        WorkspaceEdit(document_changes=[_edit_doc(doc, range, text + "\n\n" + replacement)])
+    )
+    ls.show_message("Inserted %i characters" % len(replacement))

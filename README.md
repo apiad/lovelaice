@@ -21,6 +21,7 @@ Here's a non-exhaustive list of features/commands that are implemented or planne
 - [x] Arbitary text completion
 - [x] Summarize large chunks of text
 - [x] Expand fragments of text
+- [x] Brainstorm ideas based on a fragment of text
 - [ ] Change the tone/formality of text
 - [ ] Detect and change the sentiment of text
 - [ ] Generate headings and titles
