@@ -1,6 +1,6 @@
 {
   "name": "lovelaice",
-  "description": "Simple json extension example",
+  "description": "An AI-powered writing assistant for VSCode",
   "author": "Alejandro Piad Morffis",
   "repository": "https://github.com/apiad/lovelaice",
   "license": "MIT",
