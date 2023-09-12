@@ -1,8 +1,10 @@
 import streamlit as st
 
-from lovelaice import MonsterAPI
+from lovelaice import MonsterAPI, Document
 
-api_key = st.text_input("🔑 MonsterAPI Key")
+st.set_page_config("Lovelaice", "🤖", "wide")
+
+api_key = st.sidebar.text_input("🔑 MonsterAPI Key")
 
 if not api_key:
     st.error("⚠️ Please paste your MonsterAPI.ai API KEY.")
@@ -10,41 +12,51 @@ if not api_key:
 
 api = MonsterAPI(api_key=api_key)
 
-file = st.file_uploader("📣 Audio file", "mp3", False)
+file = st.sidebar.file_uploader("📣 Audio file", "mp3", False)
 
-if not file:
-    st.warning("Please upload an MP3 file to transcribe.")
-    st.stop()
-
-if file.size >= 8 * 1024 * 1024:
-    st.warning("⚠️ MonsterAPI does not support files bigger than 8 MB. Only the first 8 MB will be uploaded.")
-    file.truncate(7 * 1024 * 1024)
-
-if st.button("🗣️ Transcribe"):
-    with st.spinner("Uploading"):
-        response = api.transcribe(file)
-    with st.spinner("Waiting for response"):
-        response = api.resolve(response)
-
-    st.write("#### Raw response")
-    st.json(response, expanded=False)
-    st.session_state["raw_transcription"] = response["result"]["text"]
-
-transcription = st.session_state.get("raw_transcription", "")
 
 st.write("#### Transcription")
+
+if file:
+    if st.button("🗣️ Transcribe"):
+        with st.spinner("Uploading"):
+            response = api.transcribe(file)
+        with st.spinner("Waiting for response"):
+            response = api.resolve(response)
+
+        st.session_state["raw_transcription"] = response["result"]["text"]
+else:
+    st.warning("Please upload an MP3 file to transcribe.")
+
+transcription = st.session_state.get("raw_transcription", "")
 
 if not transcription:
     st.warning("Transcription is empty")
     st.stop()
 
-st.write(transcription)
+with st.expander("Raw transcription", False):
+    st.write(transcription)
+
+doc = Document(transcription)
+selected = []
+
+with st.expander("Sentences"):
+    for s in doc.sentences:
+        if st.checkbox(s, True):
+            selected.append(s)
+
+doc.sentences = selected
+
+st.download_button("📝 Download transcription", "\n".join(selected), "transcription.txt")
 
 st.write("#### Rewrite")
 
-instruction = st.text_input("Rewrite instruction", "Rewrite the previous text fixing grammar and spelling issues.")
+instruction = st.text_input(
+    "Rewrite instruction",
+    "Rewrite the previous text fixing grammar and spelling issues",
+)
 
-cols = st.columns([2,1])
+cols = st.columns([2, 1])
 model = cols[0].selectbox(
     "Select model",
     [
@@ -56,20 +68,41 @@ model = cols[0].selectbox(
         "falcon-40b-instruct",
         "openllama-13B-base",
     ],
-    label_visibility="collapsed"
+    label_visibility="collapsed",
 )
 
-if cols[1].button("✏️ Rewrite", use_container_width=True):
-    with st.spinner("Submitting"):
-        response = api.generate_text(
-            f"{transcription}\n\n{instruction}",
-            model=model,
-        )
-    with st.spinner("Waiting for response"):
-        response = api.resolve(response)
+doc.chunk(
+    st.sidebar.number_input("Chunk into sentences", min_value=1, value=10),
+    st.sidebar.number_input("Chunk overlap", min_value=0, value=0),
+)
 
-    st.write("#### Raw response")
-    st.json(response, expanded=False)
-    st.session_state["rewrite"] = response["result"]["text"]
+block = st.container()
 
-st.write(st.session_state.get("rewrite"))
+selected_chunks = []
+
+for chunk in doc.chunks:
+    if st.checkbox(chunk, True):
+        selected_chunks.append(chunk)
+
+if cols[1].button(f"✏️ Rewrite {len(selected_chunks)} chunks", use_container_width=True):
+    progress = block.progress(0)
+    results = []
+
+    with block:
+        for i, chunk in enumerate(selected_chunks):
+            progress.progress((i+1) / len(selected_chunks), f"Rewriting {len(selected_chunks)} chunks...")
+            with st.spinner(f"Submitting chunk #{i+1}"):
+                response = api.generate_text(
+                    f"{chunk}\n\n{instruction}",
+                    model=model,
+                )
+            with st.spinner("Waiting for response"):
+                response = api.resolve(response)
+                results.append(response["result"]["text"])
+
+    st.session_state["rewrite"] = results
+
+st.write("---")
+
+for chunk in st.session_state.get("rewrite", []):
+    st.write(chunk)
