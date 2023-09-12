@@ -2,7 +2,7 @@
 
 import * as net from "net";
 import * as path from "path";
-import { ExtensionContext, ExtensionMode, workspace } from "vscode";
+import { window, commands, ExtensionContext, ExtensionMode, workspace } from "vscode";
 import {
     LanguageClient,
     LanguageClientOptions,
@@ -61,6 +61,16 @@ function startLangServer(
 }
 
 export function activate(context: ExtensionContext): void {
+    context.subscriptions.push(commands.registerCommand('lovelaice.generateDocument', async() => {
+        const result = await window.showInputBox({
+            title: "Generate a new markdown document",
+            prompt: "Enter a brief description of the content.",
+            value: "a recommendation letter for a friend...",
+        });
+
+        await commands.executeCommand("lovelaice.generateDocumentImp", result);
+    }));
+
     if (context.extensionMode === ExtensionMode.Development) {
         // Development - Run the server manually
         client = startLangServerTCP(2087);

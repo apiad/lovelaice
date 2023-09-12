@@ -6,6 +6,8 @@ from lsprotocol.types import (
     Range,
     Position,
     TextDocumentEdit,
+    ShowDocumentParams,
+    CreateFile,
     WorkspaceEdit,
     OptionalVersionedTextDocumentIdentifier,
     TextEdit,
@@ -14,6 +16,7 @@ from lsprotocol.types import (
 from pygls.server import LanguageServer
 from pygls.workspace import Document, Workspace
 from .utils import extract_paragraph_around
+from pathlib import Path
 import openai
 import os
 
@@ -55,16 +58,26 @@ def _expand(text):
 def _define(paragraph, text):
     return _complete_text(
         f'In the following paragraph, what is the meaning of the phrase "{text}":\n\n'
-        + paragraph + "\n\n"
+        + paragraph
+        + "\n\n"
     )
 
 
 def _evaluate(text):
-    return _complete_text("Answer with a short phrase, what is the tone, difficulty (low, medium, high), audience, and overall sentiment of the following text:\n\n" + text + "\n\n", temperature=0)
+    return _complete_text(
+        "Answer with a short phrase, what is the tone, difficulty (low, medium, high), audience, and overall sentiment of the following text:\n\n"
+        + text
+        + "\n\n",
+        temperature=0,
+    )
 
 
 def _brainstorm(text):
     return _complete_text("Brainstorm ideas based on the following premise:\n\n" + text)
+
+
+def _generate(prompt: str, max_tokens=1024):
+    return _complete_text(f"Generate {prompt.strip()}:\n\n")
 
 
 def _edit_doc(doc, range, new_text):
@@ -74,6 +87,18 @@ def _edit_doc(doc, range, new_text):
         ),
         edits=[TextEdit(range, new_text)],
     )
+
+
+def _create_doc(uri: str, content: str):
+    return [
+        CreateFile(uri=uri),
+        TextDocumentEdit(
+            text_document=OptionalVersionedTextDocumentIdentifier(
+                uri=uri, version=None
+            ),
+            edits=[TextEdit(Range(Position(0, 0), Position(0, 0)), content)],
+        ),
+    ]
 
 
 class Server(LanguageServer):
@@ -92,18 +117,18 @@ def on_code_action(ls: Server, params: CodeActionParams):
     range = params.range
 
     return [
-        Command("🪄 Continue this text", "completeText", (uri, range)),
-        Command("🔍 What does this mean?", "define", (uri, range)),
-        Command("✨ Expand & explain", "expand", (uri, range)),
-        Command("💡 Brainstorm", "brainstorm", (uri, range)),
-        Command("🚩 Summarize", "summarize", (uri, range)),
-        Command("🔧 Quick fix", "fixGrammar", (uri, range)),
-        Command("💖 Evaluate", "evaluate", (uri, range)),
+        Command("🪄 Continue this text", "lovelaice.completeText", (uri, range)),
+        Command("🔍 What does this mean?", "lovelaice.define", (uri, range)),
+        Command("✨ Expand & explain", "lovelaice.expand", (uri, range)),
+        Command("💡 Brainstorm", "lovelaice.brainstorm", (uri, range)),
+        Command("🚩 Summarize", "lovelaice.summarize", (uri, range)),
+        Command("🔧 Quick fix", "lovelaice.fixGrammar", (uri, range)),
+        Command("💖 Evaluate", "lovelaice.evaluate", (uri, range)),
     ]
 
 
 @server.thread()
-@server.command("fixGrammar")
+@server.command("lovelaice.fixGrammar")
 def fix_syntax_and_grammar(ls: Server, args):
     uri, range = args
     range = Range(start=Position(**range["start"]), end=Position(**range["end"]))
@@ -125,7 +150,7 @@ def fix_syntax_and_grammar(ls: Server, args):
 
 
 @server.thread()
-@server.command("completeText")
+@server.command("lovelaice.completeText")
 def complete_text(ls: Server, args):
     uri, range = args
     range = Range(start=Position(**range["start"]), end=Position(**range["end"]))
@@ -149,7 +174,7 @@ def complete_text(ls: Server, args):
 
 
 @server.thread()
-@server.command("summarize")
+@server.command("lovelaice.summarize")
 def summarize(ls: Server, args):
     uri, range = args
     range = Range(start=Position(**range["start"]), end=Position(**range["end"]))
@@ -175,7 +200,7 @@ def summarize(ls: Server, args):
 
 
 @server.thread()
-@server.command("expand")
+@server.command("lovelaice.expand")
 def expand(ls: Server, args):
     uri, range = args
     range = Range(start=Position(**range["start"]), end=Position(**range["end"]))
@@ -197,7 +222,7 @@ def expand(ls: Server, args):
 
 
 @server.thread()
-@server.command("brainstorm")
+@server.command("lovelaice.brainstorm")
 def brainstorm(ls: Server, args):
     uri, range = args
     range = Range(start=Position(**range["start"]), end=Position(**range["end"]))
@@ -223,7 +248,7 @@ def brainstorm(ls: Server, args):
 
 
 @server.thread()
-@server.command("define")
+@server.command("lovelaice.define")
 def define(ls: Server, args):
     uri, range = args
     range = Range(start=Position(**range["start"]), end=Position(**range["end"]))
@@ -248,8 +273,9 @@ def define(ls: Server, args):
 
     ls.show_message("🔎 " + definition)
 
+
 @server.thread()
-@server.command("evaluate")
+@server.command("lovelaice.evaluate")
 def evaluate(ls: Server, args):
     uri, range = args
     range = Range(start=Position(**range["start"]), end=Position(**range["end"]))
@@ -267,3 +293,22 @@ def evaluate(ls: Server, args):
     evaluation = _evaluate(text)
 
     ls.show_message("💖 " + evaluation)
+
+
+@server.thread()
+@server.command("lovelaice.generateDocumentImp")
+def generate_document(ls: Server, args):
+    prompt = args[0].strip()
+
+    if not prompt:
+        ls.show_message("Please provide a valid prompt", MessageType.Error)
+        return
+
+    path = Path(ls.workspace.root_path) / (prompt[:20].lower().replace(" ", "_") + ".md")
+    ls.show_message("🪄 Generating document...")
+    content = _generate(prompt)
+
+    with open(path, "w") as fp:
+        fp.write(content)
+
+    ls.show_document(ShowDocumentParams(uri=path))

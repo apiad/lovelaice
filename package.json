@@ -15,15 +15,19 @@
     "onLanguage:markdown"
   ],
   "contributes": {
-    "commands": [],
+    "commands": [{
+      "command": "lovelaice.generateDocument",
+      "title": "Generate Document from Scratch",
+      "category": "Lovelaice"
+    }],
     "configuration": {
       "type": "object",
       "title": "Lovelaice Server Configuration",
       "properties": {
-        "lovelaice.exampleConfiguration": {
+        "lovelaice.openaiToken": {
           "scope": "resource",
           "type": "string",
-          "default": "You can override this message."
+          "default": ""
         }
       }
     }
