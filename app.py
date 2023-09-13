@@ -12,52 +12,55 @@ if not api_key:
 
 api = MonsterAPI(api_key=api_key)
 
-file = st.sidebar.file_uploader("📣 Audio file", "mp3", False)
-
+file = st.sidebar.file_uploader("📣 Text or audio file", ["mp3", "txt"], False)
 
 st.write("#### Transcription")
 
 if file:
-    if st.button("🗣️ Transcribe"):
-        with st.spinner("Uploading"):
-            response = api.transcribe(file)
-        with st.spinner("Waiting for response"):
-            response = api.resolve(response)
+    if file.name.endswith("mp3"):
+        if st.button("🗣️ Transcribe"):
+            with st.spinner("Uploading"):
+                response = api.transcribe(file)
+            with st.spinner("Waiting for response"):
+                response = api.resolve(response)
 
-        st.session_state["raw_transcription"] = response["result"]["text"]
+            st.session_state.doc = Document(response["result"]["text"])
+    else:
+        if st.button("📝 Process"):
+            st.session_state.doc = Document(file.read().decode('utf8'))
 else:
-    st.warning("Please upload an MP3 file to transcribe.")
+    st.warning("Please upload an MP3 file to transcribe or a text file.")
 
-transcription = st.session_state.get("raw_transcription", "")
+doc: Document = st.session_state.get('doc')
 
-if not transcription:
+if not doc:
     st.warning("Transcription is empty")
     st.stop()
 
 with st.expander("Raw transcription", False):
-    st.write(transcription)
+    st.write(doc.raw)
 
-doc = Document(transcription)
+st.download_button("📝 Download transcription", doc.raw, "transcription.txt")
+
 selected = []
 
-with st.expander("Sentences"):
+with st.expander("Select sentences to keep"):
     for s in doc.sentences:
         if st.checkbox(s, True):
             selected.append(s)
 
-doc.sentences = selected
+chunks = st.sidebar.number_input("Chunk into sentences", min_value=1, value=10)
 
-st.download_button("📝 Download transcription", "\n".join(selected), "transcription.txt")
+if st.button("✂️ Chunk document (destructive)"):
+    doc.sentences = selected
+    doc.chunk(chunks)
+    st.session_state.doc = doc
 
 st.write("#### Rewrite")
 
-instruction = st.text_input(
-    "Rewrite instruction",
-    "Rewrite the previous text fixing grammar and spelling issues",
-)
+doc = st.session_state.doc
 
-cols = st.columns([2, 1])
-model = cols[0].selectbox(
+model = st.sidebar.selectbox(
     "Select model",
     [
         "llama2-7b-chat",
@@ -67,42 +70,48 @@ model = cols[0].selectbox(
         "flan-T5",
         "falcon-40b-instruct",
         "openllama-13B-base",
-    ],
-    label_visibility="collapsed",
+    ]
 )
 
-doc.chunk(
-    st.sidebar.number_input("Chunk into sentences", min_value=1, value=10),
-    st.sidebar.number_input("Chunk overlap", min_value=0, value=0),
+instruction = st.sidebar.text_area(
+    "Rewrite instruction",
+    "Rewrite the following text fixing grammar and spelling issues. Reply only with the rewritten text.",
 )
 
-block = st.container()
 
-selected_chunks = []
+def rewrite(doc, chunk):
+    with st.spinner(f"Submitting chunk"):
+        response = api.generate_text(
+            f"{instruction}\n\n{doc.chunks[chunk].rewrite}",
+            model=model,
+        )
+    with st.spinner("Waiting for response"):
+        response = api.resolve(response)
+        text = response["result"]["text"].split("\n")
+        rewrite = " ".join(s for s in text if not (s.startswith("Sure") or s.startswith("As an AI")))
 
-for chunk in doc.chunks:
-    if st.checkbox(chunk, True):
-        selected_chunks.append(chunk)
+    doc.chunks[chunk].rewrite = rewrite
+    st.session_state.doc = doc
 
-if cols[1].button(f"✏️ Rewrite {len(selected_chunks)} chunks", use_container_width=True):
-    progress = block.progress(0)
-    results = []
 
-    with block:
-        for i, chunk in enumerate(selected_chunks):
-            progress.progress((i+1) / len(selected_chunks), f"Rewriting {len(selected_chunks)} chunks...")
-            with st.spinner(f"Submitting chunk #{i+1}"):
-                response = api.generate_text(
-                    f"{chunk}\n\n{instruction}",
-                    model=model,
-                )
-            with st.spinner("Waiting for response"):
-                response = api.resolve(response)
-                results.append(response["result"]["text"])
+def revert(doc, chunk):
+    doc.chunks[chunk].rewrite = doc.chunks[chunk].text
+    st.session_state.doc = doc
 
-    st.session_state["rewrite"] = results
+
+for i, chunk in enumerate(doc.chunks):
+    st.write("---")
+
+    if st.checkbox("Edit mode", False, key="edit_%i" % i):
+        doc.chunks[i].rewrite = st.text_area("Chunk", chunk.rewrite, key="text_%i" % i, height=200, label_visibility="collapsed")
+        st.session_state.doc = doc
+    else:
+        st.write(chunk.rewrite)
+
+    st.button(f"✏️ Rewrite", key="rewrite_%i" % i, on_click=rewrite, args=(doc, i))
+    st.button(f"✏️ Revert", key="revert_%i" % i, on_click=revert, args=(doc, i))
+
 
 st.write("---")
 
-for chunk in st.session_state.get("rewrite", []):
-    st.write(chunk)
+st.download_button("📝 Download draft", "\n\n".join([c.rewrite for c in doc.chunks]), "draft.txt")
