@@ -100,18 +100,16 @@ def revert(doc, chunk):
 
 
 for i, chunk in enumerate(doc.chunks):
-    st.write("---")
-
-    if st.checkbox("Edit mode", False, key="edit_%i" % i):
+    if st.toggle("✏️ Manual edit (toggle back to save)", False, key="edit_%i" % i):
         doc.chunks[i].rewrite = st.text_area("Chunk", chunk.rewrite, key="text_%i" % i, height=200, label_visibility="collapsed")
         st.session_state.doc = doc
     else:
         st.write(chunk.rewrite)
 
-    st.button(f"✏️ Rewrite", key="rewrite_%i" % i, on_click=rewrite, args=(doc, i))
-    st.button(f"✏️ Revert", key="revert_%i" % i, on_click=revert, args=(doc, i))
+    st.button(f"🪄 Rewrite", key="rewrite_%i" % i, on_click=rewrite, args=(doc, i))
+    st.button(f"➰ Revert", key="revert_%i" % i, on_click=revert, args=(doc, i))
 
+    st.write("---")
 
-st.write("---")
 
 st.download_button("📝 Download draft", "\n\n".join([c.rewrite for c in doc.chunks]), "draft.txt")
