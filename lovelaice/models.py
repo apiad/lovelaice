@@ -1,7 +1,7 @@
 class Chunk:
-    def __init__(self, text:str) -> None:
+    def __init__(self, text:str, *, rewrite:str=None) -> None:
         self.text = text
-        self.rewrite = text
+        self.rewrite = rewrite or text
 
 
 class Document:

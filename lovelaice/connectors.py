@@ -69,6 +69,7 @@ class MonsterAPI:
             response = requests.get(status_url, headers=self.headers).json()
 
             if response['status'] not in ["IN_PROGRESS", "IN_QUEUE"]:
+                print(response, flush=True)
                 return response
 
             time.sleep(pool)
