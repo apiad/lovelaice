@@ -36,10 +36,10 @@ class MonsterAPI:
         requests.put(upload_url, data=fp.read())
         return donwload_url
 
-    def transcribe(self, fp, **kwargs):
+    def transcribe(self, fp, fname="voice.mp3", **kwargs):
         url = "https://api.monsterapi.ai/v1/generate/whisper"
 
-        filename = self.upload(fp, "voice.mp3")
+        filename = self.upload(fp, fname)
 
         response = requests.post(url, headers=self.headers, json=self.build_payload(file=filename, **kwargs))
         return response
