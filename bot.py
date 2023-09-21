@@ -50,7 +50,10 @@ async def transcribe(update: Update, context: ContextTypes.DEFAULT_TYPE):
         text="I got the audio, uploading to MonsterAPI.",
     )
 
-    response = api.transcribe(content, "voice.ogg")
+    attachement = update.effective_message.effective_attachment
+    filename = getattr(attachement, 'file_name', 'voice.ogg')
+
+    response = api.transcribe(content, filename)
     await context.bot.send_message(
         chat_id=update.effective_chat.id, text="Uploaded, waiting for reply."
     )
@@ -95,7 +98,7 @@ Send an audio or voice message to begin a new one."""
 async def default(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
-        text=f"I don't know what to do with: '{update.message.text}'",
+        text=f"I don't understand 😞",
     )
 
 
@@ -111,7 +114,7 @@ if __name__ == "__main__":
     audio_handler = MessageHandler(filters.VOICE | filters.AUDIO, transcribe)
     application.add_handler(audio_handler)
 
-    default_handler = MessageHandler(filters.TEXT & (~filters.COMMAND), default)
+    default_handler = MessageHandler(filters.TEXT, default)
     application.add_handler(default_handler)
 
     application.run_polling()
