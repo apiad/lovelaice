@@ -31,7 +31,9 @@ Send me an audio or voice message and I will transcribe it for you.
 
 You can send more than one audio to make one larger transcription.
 
-When I'm ready, you can download the transcription file."""
+When done, you can download the transcription file in several formats.
+
+Send /help for detailed instructions."""
     )
 
 
@@ -68,15 +70,22 @@ async def transcribe(update: Update, context: ContextTypes.DEFAULT_TYPE):
     with transcript_path.open("a") as fp:
         for line in doc.sentences:
             fp.write(line)
-            fp.write("\n")
+            fp.write("\n\n")
 
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
-        text="The transcription is ready. Send me another audio or voice to continue, or send /done or /peek to get the file.",
+        text="""
+The transcription is ready. Send me another audio or voice to continue, or use one of the following commands:
+
+/txt  - Download text as a .txt file
+/md   - Download text as a .md file
+/msg  - See text as Telegram message
+/done - Discard the current file (⚠️)
+""",
     )
 
 
-async def peek(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def msg(update: Update, context: ContextTypes.DEFAULT_TYPE):
     transcript_path: Path = (
         Path(__file__).parent / f"transcription-{update.effective_chat.id}.txt"
     )
@@ -89,17 +98,68 @@ Send an audio or voice message to begin a new one."""
         )
         return
 
-    await context.bot.send_document(
-        chat_id=update.effective_chat.id, document=transcript_path
+    with open(transcript_path) as fp:
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id, text=fp.read()
+        )
+
+
+async def txt(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    transcript_path: Path = (
+        Path(__file__).parent / f"transcription-{update.effective_chat.id}.txt"
     )
+
+    if not transcript_path.exists():
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id, text="""
+No transcription is currently available.
+Send an audio or voice message to begin a new one."""
+        )
+        return
+
+    with open(transcript_path) as fp:
+        await context.bot.send_document(
+            chat_id=update.effective_chat.id, document=fp, filename="transcription.txt"
+        )
+
+
+async def md(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    transcript_path: Path = (
+        Path(__file__).parent / f"transcription-{update.effective_chat.id}.txt"
+    )
+
+    if not transcript_path.exists():
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id, text="""
+No transcription is currently available.
+Send an audio or voice message to begin a new one."""
+        )
+        return
+
+    with open(transcript_path) as fp:
+        await context.bot.send_document(
+            chat_id=update.effective_chat.id, document=fp, filename="transcription.md"
+        )
 
 
 async def done(update: Update, context: ContextTypes.DEFAULT_TYPE):
     transcript_path: Path = (
         Path(__file__).parent / f"transcription-{update.effective_chat.id}.txt"
     )
-    await peek(update)
+
+    if not transcript_path.exists():
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id, text="""
+No transcription is currently available.
+Send an audio or voice message to begin a new one."""
+        )
+        return
+
     transcript_path.unlink()
+
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id, text="Note discarded. Send me an audio message to start a new note."
+    )
 
 
 async def default(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -115,13 +175,19 @@ if __name__ == "__main__":
     start_handler = CommandHandler("start", start)
     application.add_handler(start_handler)
 
-    peek_handler = CommandHandler("peek", peek)
-    application.add_handler(peek_handler)
+    msg_handler = CommandHandler("msg", msg)
+    application.add_handler(msg_handler)
+
+    txt_handler = CommandHandler("txt", txt)
+    application.add_handler(txt_handler)
+
+    md_handler = CommandHandler("md", md)
+    application.add_handler(md_handler)
 
     done_handler = CommandHandler("done", done)
     application.add_handler(done_handler)
 
-    audio_handler = MessageHandler(filters.VOICE | filters.AUDIO, transcribe)
+    audio_handler = MessageHandler(filters.VOICE, transcribe)
     application.add_handler(audio_handler)
 
     default_handler = MessageHandler(filters.TEXT, default)
