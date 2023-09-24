@@ -72,11 +72,11 @@ async def transcribe(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
-        text="The transcription is ready. Send me another audio or voice to continue, or send /done to get the file.",
+        text="The transcription is ready. Send me another audio or voice to continue, or send /done or /peek to get the file.",
     )
 
 
-async def done(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def peek(update: Update, context: ContextTypes.DEFAULT_TYPE):
     transcript_path: Path = (
         Path(__file__).parent / f"transcription-{update.effective_chat.id}.txt"
     )
@@ -92,6 +92,13 @@ Send an audio or voice message to begin a new one."""
     await context.bot.send_document(
         chat_id=update.effective_chat.id, document=transcript_path
     )
+
+
+async def done(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    transcript_path: Path = (
+        Path(__file__).parent / f"transcription-{update.effective_chat.id}.txt"
+    )
+    await peek(update)
     transcript_path.unlink()
 
 
@@ -107,6 +114,9 @@ if __name__ == "__main__":
 
     start_handler = CommandHandler("start", start)
     application.add_handler(start_handler)
+
+    peek_handler = CommandHandler("peek", peek)
+    application.add_handler(peek_handler)
 
     done_handler = CommandHandler("done", done)
     application.add_handler(done_handler)
