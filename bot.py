@@ -70,7 +70,9 @@ async def transcribe(update: Update, context: ContextTypes.DEFAULT_TYPE):
     with transcript_path.open("a") as fp:
         for line in doc.sentences:
             fp.write(line)
-            fp.write("\n\n")
+            fp.write("\n")
+
+        fp.write("\n")
 
     await context.bot.send_message(
         chat_id=update.effective_chat.id,

@@ -9,7 +9,7 @@ class Chunk:
 class Document:
     def __init__(self, raw) -> None:
         self.raw = raw
-        self.sentences = self._split(self.raw)
+        self.sentences = Parser().parse(self._split(self.raw))
         self.chunks = []
 
     def _split(self, text: str):
@@ -36,41 +36,62 @@ class Document:
             yield Chunk(" ".join(current))
 
 
-heading_re = re.compile(r"[Hh]eading[,:]?\s(?P<content>.*)")
-subheading_re = re.compile(r"[Ss]ubheading[,:]?\s(?P<content>.*)")
-title_re = re.compile(r"[Tt]itle[,:]?\s(?P<content>.*)")
+heading_re = re.compile(r"[Hh]eading[,:]? (?P<content>.*)")
+subheading_re = re.compile(r"[Ss]ubheading[,:]? (?P<content>.*)")
+title_re = re.compile(r"[Tt]itle[,:]? (?P<content>.*)")
+
+being_ul = re.compile(r"[Bb]egin unorder(ed)? list.*")
+end_ul = re.compile(r"[Ee]nd unorder(ed)? list.*")
+being_ol = re.compile(r"[Bb]egin order(ed)? list.*")
+end_ol = re.compile(r"[Ee]nd order(ed)? list.*")
+being_tl = re.compile(r"[Bb]egin todo list.*")
+end_tl = re.compile(r"[Ee]nd todo list.*")
 
 
 class Parser:
     def __init__(self) -> None:
         self.rules = {
-            title_re: self._build_title,
-            heading_re: self._build_heading,
-            subheading_re: self._build_subheading,
+            title_re: self._build_section("#"),
+            heading_re: self._build_section("##"),
+            subheading_re: self._build_section("###"),
+
+            being_ul: self._toggle_prefix("- ", skip=True),
+            end_ul: self._toggle_prefix("", skip=True),
+            being_ol: self._toggle_prefix(1, skip=True),
+            end_ol: self._toggle_prefix("", skip=True),
+            being_tl: self._toggle_prefix("- [ ] ", skip=True),
+            end_tl: self._toggle_prefix("", skip=True),
         }
 
-    def _build_title(self, content: str):
-        yield "\n"
-        yield "# " + content.strip().capitalize()
-        yield "\n"
+        self.prefix = ""
 
-    def _build_heading(self, content: str):
-        yield "\n"
-        yield "## " + content.strip().capitalize()
-        yield "\n"
+    def _toggle_prefix(self, prefix, skip):
+        def _build(content: str):
+            self.prefix = prefix
+            if skip: return
+            yield content
 
-    def _build_subheading(self, content: str):
-        yield "\n"
-        yield "### " + content.strip().capitalize()
-        yield "\n"
+        return _build
+
+    def _build_section(self, mark):
+        def _build(content: str):
+            yield f"{mark} {content.strip().capitalize()}"
+
+        return _build
 
     def _process(self, sentence:str):
         for rule, action in self.rules.items():
             if m := rule.match(sentence):
-                yield from action(m.group("content"))
+                yield from action(m.groupdict().get("content", ""))
                 return
 
-        yield sentence
+        if isinstance(self.prefix, int):
+            prefix = f"{self.prefix}. "
+            self.prefix += 1
+        else:
+            prefix = self.prefix
+
+        yield f"{prefix}{sentence}"
 
     def parse(self, sentences:list[str]) -> list[str]:
         return list(self._parse(*sentences))
