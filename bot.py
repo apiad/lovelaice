@@ -224,6 +224,9 @@ async def list(update: Update, context: ContextTypes.DEFAULT_TYPE):
     notes = [path.name for path in get_data(update.effective_chat.id).glob("*.txt")]
     msg = "\n".join(f"/note_{i+1} - {note}" for i, note in enumerate(notes))
 
+    if not msg:
+        msg = "You don't have any notes yet. Send an audio message to create a new note."
+
     await context.bot.send_message(
         chat_id=update.effective_chat.id, text=msg
     )
