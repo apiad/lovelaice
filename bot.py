@@ -1,4 +1,5 @@
 import logging
+import datetime
 
 from pathlib import Path
 from dotenv import load_dotenv
@@ -17,6 +18,33 @@ from lovelaice import MonsterAPI, Document
 
 load_dotenv()
 api = MonsterAPI(api_key=os.getenv("MONSTER_API"))
+
+data_folder = Path(__file__).parent / "data" / "bot"
+
+
+def get_data(user_id) -> Path:
+    user_folder = data_folder / str(user_id)
+    user_folder.mkdir(parents=True, exist_ok=True)
+    return user_folder
+
+
+def select_note(user_id, name=None):
+    selected_file = get_data(user_id) / ".selected-note"
+
+    if name:
+        with open(selected_file, "w") as fp:
+            fp.write(name)
+    else:
+        selected_file.unlink(missing_ok=True)
+
+
+def get_selected_note(user_id) -> Path:
+    selected_file = get_data(user_id) / ".selected-note"
+
+    if not selected_file.exists():
+        return None
+
+    return get_data(user_id) / str(open(selected_file).read())
 
 
 logging.basicConfig(
@@ -63,9 +91,17 @@ async def transcribe(update: Update, context: ContextTypes.DEFAULT_TYPE):
     result = api.resolve(response)
     doc = Document(result["result"]["text"])
 
-    transcript_path: Path = (
-        Path(__file__).parent / f"transcription-{update.effective_chat.id}.txt"
-    )
+    selected_note = get_selected_note(update.effective_chat.id)
+
+    if selected_note:
+        transcript_path = selected_note
+    else:
+        title = doc.sentences[0]
+        title = title[:25]
+        title = "".join([c for c in title if c.isalnum() or c == " "])
+        now = datetime.datetime.now().isoformat()
+
+        transcript_path = get_data(update.effective_chat.id) / f"{title} - {now}.txt"
 
     with transcript_path.open("a") as fp:
         for line in doc.sentences:
@@ -74,93 +110,122 @@ async def transcribe(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         fp.write("\n")
 
+    summary = str(doc)[:255] + "..."
+
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
-        text="""
-The transcription is ready. Send me another audio or voice to continue, or use one of the following commands:
+        text=f"""
+The transcription is ready. Send me another audio or voice to continue this note,
+or send /done to finish this note.
 
-/txt  - Download text as a .txt file
-/md   - Download text as a .md file
-/msg  - See text as Telegram message
-/done - Discard the current file (⚠️)
+_{summary}_
 """,
-    )
+     parse_mode="markdown")
 
 
 async def msg(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    transcript_path: Path = (
-        Path(__file__).parent / f"transcription-{update.effective_chat.id}.txt"
-    )
+    selected_note = get_selected_note(update.effective_chat.id)
 
-    if not transcript_path.exists():
+    if not selected_note:
         await context.bot.send_message(
             chat_id=update.effective_chat.id, text="""
-No transcription is currently available.
+No note is currently selected.
 Send an audio or voice message to begin a new one."""
         )
         return
 
-    with open(transcript_path) as fp:
+    with open(selected_note) as fp:
         await context.bot.send_message(
             chat_id=update.effective_chat.id, text=fp.read()
         )
 
 
 async def txt(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    transcript_path: Path = (
-        Path(__file__).parent / f"transcription-{update.effective_chat.id}.txt"
-    )
+    selected_note = get_selected_note(update.effective_chat.id)
 
-    if not transcript_path.exists():
+    if not selected_note:
         await context.bot.send_message(
             chat_id=update.effective_chat.id, text="""
-No transcription is currently available.
+No note is currently selected.
 Send an audio or voice message to begin a new one."""
         )
         return
 
-    with open(transcript_path) as fp:
+    with open(selected_note) as fp:
         await context.bot.send_document(
             chat_id=update.effective_chat.id, document=fp, filename="transcription.txt"
         )
 
 
-async def md(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    transcript_path: Path = (
-        Path(__file__).parent / f"transcription-{update.effective_chat.id}.txt"
-    )
-
-    if not transcript_path.exists():
-        await context.bot.send_message(
-            chat_id=update.effective_chat.id, text="""
-No transcription is currently available.
-Send an audio or voice message to begin a new one."""
-        )
-        return
-
-    with open(transcript_path) as fp:
-        await context.bot.send_document(
-            chat_id=update.effective_chat.id, document=fp, filename="transcription.md"
-        )
-
-
 async def done(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    transcript_path: Path = (
-        Path(__file__).parent / f"transcription-{update.effective_chat.id}.txt"
-    )
+    selected_note = get_selected_note(update.effective_chat.id)
 
-    if not transcript_path.exists():
+    if not selected_note:
         await context.bot.send_message(
             chat_id=update.effective_chat.id, text="""
-No transcription is currently available.
+No note is currently selected.
 Send an audio or voice message to begin a new one."""
         )
         return
 
-    transcript_path.unlink()
+    select_note(update.effective_chat.id)
+
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id, text="Done. Send me an audio message to start a new note."
+    )
+
+
+async def delete(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    selected_note = get_selected_note(update.effective_chat.id)
+
+    if not selected_note:
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id, text="""
+No note is currently selected.
+Send an audio or voice message to begin a new one."""
+        )
+        return
+
+    selected_note.unlink()
+    select_note(update.effective_chat.id)
 
     await context.bot.send_message(
         chat_id=update.effective_chat.id, text="Note discarded. Send me an audio message to start a new note."
+    )
+
+
+async def select(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    notes = [path.name for path in get_data(update.effective_chat.id).glob("*.txt")]
+    mapping = {f"/note_{i+1}": note for i,note in enumerate(notes)}
+
+    note = update.effective_message.text
+
+    if note not in mapping:
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id, text="Invalid note ID."
+        )
+        return
+
+    select_note(update.effective_chat.id, mapping[note])
+
+    await context.bot.send_message(
+            chat_id=update.effective_chat.id, text=f"""Selected note: **{note}**
+
+Send a voice message to append to this note, or use the following commands:
+
+/msg - Print note as Telegram message.
+/txt - Download note as TXT file.
+/delete - Delete this note (undoable!)
+/done - Finish with this note.
+"""
+        )
+
+async def list(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    notes = [path.name for path in get_data(update.effective_chat.id).glob("*.txt")]
+    msg = "\n".join(f"/note_{i+1} - {note}" for i, note in enumerate(notes))
+
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id, text=msg
     )
 
 
@@ -177,20 +242,26 @@ if __name__ == "__main__":
     start_handler = CommandHandler("start", start)
     application.add_handler(start_handler)
 
+    list_handler = CommandHandler("list", list)
+    application.add_handler(list_handler)
+
     msg_handler = CommandHandler("msg", msg)
     application.add_handler(msg_handler)
 
     txt_handler = CommandHandler("txt", txt)
     application.add_handler(txt_handler)
 
-    md_handler = CommandHandler("md", md)
-    application.add_handler(md_handler)
-
     done_handler = CommandHandler("done", done)
     application.add_handler(done_handler)
 
+    delete_handler = CommandHandler("delete", delete)
+    application.add_handler(delete_handler)
+
     audio_handler = MessageHandler(filters.VOICE, transcribe)
     application.add_handler(audio_handler)
+
+    select_handler = MessageHandler(filters.COMMAND & filters.Regex(r"/note_\d+"), select)
+    application.add_handler(select_handler)
 
     default_handler = MessageHandler(filters.TEXT, default)
     application.add_handler(default_handler)

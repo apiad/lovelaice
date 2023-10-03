@@ -35,6 +35,9 @@ class Document:
         if current:
             yield Chunk(" ".join(current))
 
+    def __str__(self) -> str:
+        return "\n".join(self.sentences)
+
 
 heading_re = re.compile(r"[Hh]eading[,:]? (?P<content>.*)")
 subheading_re = re.compile(r"[Ss]ubheading[,:]? (?P<content>.*)")
