@@ -1,4 +1,5 @@
 import logging
+import json
 import datetime
 
 from pathlib import Path
@@ -18,6 +19,7 @@ from lovelaice import MonsterAPI, Document
 
 load_dotenv()
 api = MonsterAPI(api_key=os.getenv("MONSTER_API"))
+admin = os.getenv('ADMIN')
 
 data_folder = Path(__file__).parent / "data" / "bot"
 
@@ -29,6 +31,29 @@ def _get_data(user_id) -> Path:
     user_folder = data_folder / str(user_id)
     user_folder.mkdir(parents=True, exist_ok=True)
     return user_folder
+
+
+def _get_user_data(user_id):
+    user_data = _get_data(user_id) / ".user.json"
+
+    if not user_data.exists():
+        _store_user_data(user_id, dict(credits=100))
+
+    with open(user_data) as fp:
+        return json.load(fp)
+
+
+def _store_user_data(user_id, data):
+    user_data = _get_data(user_id) / ".user.json"
+
+    with open(user_data, "w") as fp:
+        json.dump(data, fp, indent=2)
+
+
+def _update_credits(user_id, delta_credits):
+    data = _get_user_data(user_id)
+    data["credits"] += delta_credits
+    _store_user_data(user_id, data)
 
 
 def _select_note(user_id, name=None):
@@ -68,7 +93,26 @@ Send /help for detailed instructions."""
     )
 
 
+async def status(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    data = _get_user_data(update.effective_user.username)
+
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id, text=f"""
+Credits: {data['credits']}
+
+If you need more credits, contact @{admin}."""
+    )
+
+
 async def transcribe(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    data = _get_user_data(update.effective_user.username)
+
+    if data['credits'] <= 0:
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id, text="I'm sorry but your out of credits. Send /status to check."
+        )
+        return
+
     await context.bot.send_message(
         chat_id=update.effective_chat.id, text="I'm getting the audio."
     )
@@ -93,8 +137,9 @@ async def transcribe(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     result = api.resolve(response)
     doc = Document(result["result"]["text"])
-
-    selected_note = _get_selected_note(update.effective_chat.id)
+    _update_credits(update.effective_user.username, -int(result['credit_used']))
+    selected_note = _get_selected_note(update.effective_user.username)
+    data = _get_user_data(update.effective_user.username)
 
     if selected_note:
         transcript_path = selected_note
@@ -104,7 +149,7 @@ async def transcribe(update: Update, context: ContextTypes.DEFAULT_TYPE):
         title = "".join([c for c in title if c.isalnum() or c == " "])
         now = datetime.datetime.now().isoformat()
 
-        transcript_path = _get_data(update.effective_chat.id) / f"{title} - {now}.txt"
+        transcript_path = _get_data(update.effective_user.username) / f"{title} - {now}.txt"
 
     with transcript_path.open("a") as fp:
         for line in doc.sentences:
@@ -113,23 +158,31 @@ async def transcribe(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         fp.write("\n")
 
-    summary = str(doc)[:255] + "..."
+    summary = str(doc)[:100] + "..."
 
-    _select_note(update.effective_chat.id, transcript_path.name)
+    _select_note(update.effective_user.username, transcript_path.name)
 
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
-        text=f"""
-The transcription is ready. Send me another audio or voice to continue this note,
-or send /done to finish this note.
+        text=f"""The transcription is ready.
 
+Remaining credits: {data['credits']}
+
+Summary:
 _{summary}_
+
+Send me another audio or voice to continue this note, or one of the following commands:
+
+/msg - Print note as Telegram message.
+/txt - Download note as TXT file.
+/delete - Delete this note (undoable!)
+/done - Finish with this note.
 """,
      parse_mode="markdown")
 
 
 async def msg(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    selected_note = _get_selected_note(update.effective_chat.id)
+    selected_note = _get_selected_note(update.effective_user.username)
 
     if not selected_note:
         await context.bot.send_message(
@@ -146,7 +199,7 @@ Send an audio or voice message to begin a new one."""
 
 
 async def txt(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    selected_note = _get_selected_note(update.effective_chat.id)
+    selected_note = _get_selected_note(update.effective_user.username)
 
     if not selected_note:
         await context.bot.send_message(
@@ -163,7 +216,7 @@ Send an audio or voice message to begin a new one."""
 
 
 async def done(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    selected_note = _get_selected_note(update.effective_chat.id)
+    selected_note = _get_selected_note(update.effective_user.username)
 
     if not selected_note:
         await context.bot.send_message(
@@ -173,7 +226,7 @@ Send an audio or voice message to begin a new one."""
         )
         return
 
-    _select_note(update.effective_chat.id)
+    _select_note(update.effective_user.username)
 
     await context.bot.send_message(
         chat_id=update.effective_chat.id, text="Done. Send me an audio message to start a new note."
@@ -181,7 +234,7 @@ Send an audio or voice message to begin a new one."""
 
 
 async def delete(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    selected_note = _get_selected_note(update.effective_chat.id)
+    selected_note = _get_selected_note(update.effective_user.username)
 
     if not selected_note:
         await context.bot.send_message(
@@ -192,7 +245,7 @@ Send an audio or voice message to begin a new one."""
         return
 
     selected_note.unlink()
-    _select_note(update.effective_chat.id)
+    _select_note(update.effective_user.username)
 
     await context.bot.send_message(
         chat_id=update.effective_chat.id, text="Note discarded. Send me an audio message to start a new note."
@@ -200,7 +253,7 @@ Send an audio or voice message to begin a new one."""
 
 
 async def select(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    notes = [path.name for path in _get_data(update.effective_chat.id).glob("*.txt")]
+    notes = [path.name for path in _get_data(update.effective_user.username).glob("*.txt")]
     mapping = {f"/note_{i+1}": note for i,note in enumerate(notes)}
 
     note = update.effective_message.text
@@ -211,7 +264,7 @@ async def select(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
-    _select_note(update.effective_chat.id, mapping[note])
+    _select_note(update.effective_user.username, mapping[note])
 
     await context.bot.send_message(
             chat_id=update.effective_chat.id, text=f"""Selected note: **{mapping[note]}**
@@ -226,7 +279,7 @@ Send a voice message to append to this note, or use the following commands:
         )
 
 async def list(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    notes = [path.name for path in _get_data(update.effective_chat.id).glob("*.txt")]
+    notes = [path.name for path in _get_data(update.effective_user.username).glob("*.txt")]
     msg = "\n".join(f"/note_{i+1} - {note}" for i, note in enumerate(notes))
 
     if not msg:
@@ -243,6 +296,25 @@ async def help(update: Update, context: ContextTypes.DEFAULT_TYPE):
         text=help_text, parse_mode="markdown"
     )
 
+
+async def reload(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.effective_user.username != admin:
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text="Nice try 🙄",
+        )
+        return
+
+    user, credits = context.args
+    _update_credits(user, int(credits))
+    data = _get_user_data(user)
+
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text=f"Done. User {user} now has {data['credits']} credits.",
+    )
+
+
 async def default(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
@@ -255,6 +327,12 @@ if __name__ == "__main__":
 
     start_handler = CommandHandler("start", start)
     application.add_handler(start_handler)
+
+    status_handler = CommandHandler("status", status)
+    application.add_handler(status_handler)
+
+    reload_handler = CommandHandler("reload", reload)
+    application.add_handler(reload_handler)
 
     list_handler = CommandHandler("list", list)
     application.add_handler(list_handler)
