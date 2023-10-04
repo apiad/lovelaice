@@ -278,7 +278,7 @@ Send a voice message to append to this note, or use the following commands:
 """, parse_mode="markdown"
         )
 
-async def list(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def list_notes(update: Update, context: ContextTypes.DEFAULT_TYPE):
     notes = [path.name for path in _get_data(update.effective_user.username).glob("*.txt")]
     msg = "\n".join(f"/note_{i+1} - {note}" for i, note in enumerate(notes))
 
@@ -315,6 +315,31 @@ async def reload(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 
+async def users(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.effective_user.username != admin:
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text="Nice try 🙄",
+        )
+        return
+
+    users = []
+
+    for user in data_folder.iterdir():
+        try:
+            credits = _get_user_data(user.name)['credits']
+            notes = len(list(user.glob("*.txt")))
+            users.append(f"{user.name} - 📝 {notes} 🪙 {credits}")
+        except Exception as e:
+            print(e)
+            pass
+
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text="\n".join(users)
+    )
+
+
 async def default(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
@@ -334,7 +359,10 @@ if __name__ == "__main__":
     reload_handler = CommandHandler("reload", reload)
     application.add_handler(reload_handler)
 
-    list_handler = CommandHandler("list", list)
+    users_handler = CommandHandler("users", users)
+    application.add_handler(users_handler)
+
+    list_handler = CommandHandler("list", list_notes)
     application.add_handler(list_handler)
 
     msg_handler = CommandHandler("msg", msg)
