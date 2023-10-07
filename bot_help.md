@@ -8,4 +8,6 @@ In your message, you can use voice commands to do some formatting. For example, 
 
 You can also say "begin list", "end list" and the items you say in between will be formatted as a list. Also works with "(begin / end) ordered list" and "(begin / end) to-do list".
 
-First-time users get 100 free credits (~80 minutes of recording). To check your credits and ask for more, send /status.
+First-time users get 100 free credits (~80 minutes of recording).
+To check your credits, send /status.
+To buy more credits, send /buy.

@@ -6,13 +6,14 @@ from pathlib import Path
 from dotenv import load_dotenv
 from io import BytesIO
 import os
-from telegram import Update
+from telegram import Update, LabeledPrice
 from telegram.ext import (
     filters,
     MessageHandler,
     ApplicationBuilder,
     ContextTypes,
     CommandHandler,
+    PreCheckoutQueryHandler,
 )
 
 from lovelaice import MonsterAPI, Document
@@ -25,6 +26,10 @@ data_folder = Path(__file__).parent / "data" / "bot"
 
 with open(Path(__file__).parent / "bot_help.md") as fp:
     help_text = fp.read()
+
+
+def _get_tg_user(update: Update):
+    return update.effective_user.username or update.effective_user.full_name or update.effective_user.id
 
 
 def _get_data(user_id) -> Path:
@@ -94,18 +99,18 @@ Send /help for detailed instructions."""
 
 
 async def status(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    data = _get_user_data(update.effective_user.username)
+    data = _get_user_data(_get_tg_user(update))
 
     await context.bot.send_message(
         chat_id=update.effective_chat.id, text=f"""
 Credits: {data['credits']}
 
-If you need more credits, contact @{admin}."""
+If you need more credits, send /buy."""
     )
 
 
 async def transcribe(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    data = _get_user_data(update.effective_user.username)
+    data = _get_user_data(_get_tg_user(update))
 
     if data['credits'] <= 0:
         await context.bot.send_message(
@@ -137,9 +142,9 @@ async def transcribe(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     result = api.resolve(response)
     doc = Document(result["result"]["text"])
-    _update_credits(update.effective_user.username, -int(result['credit_used']))
-    selected_note = _get_selected_note(update.effective_user.username)
-    data = _get_user_data(update.effective_user.username)
+    _update_credits(_get_tg_user(update), -int(result['credit_used']))
+    selected_note = _get_selected_note(_get_tg_user(update))
+    data = _get_user_data(_get_tg_user(update))
 
     if selected_note:
         transcript_path = selected_note
@@ -149,7 +154,7 @@ async def transcribe(update: Update, context: ContextTypes.DEFAULT_TYPE):
         title = "".join([c for c in title if c.isalnum() or c == " "])
         now = datetime.datetime.now().isoformat()
 
-        transcript_path = _get_data(update.effective_user.username) / f"{title} - {now}.txt"
+        transcript_path = _get_data(_get_tg_user(update)) / f"{title} - {now}.txt"
 
     with transcript_path.open("a") as fp:
         for line in doc.sentences:
@@ -160,7 +165,7 @@ async def transcribe(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     summary = str(doc)[:100] + "..."
 
-    _select_note(update.effective_user.username, transcript_path.name)
+    _select_note(_get_tg_user(update), transcript_path.name)
 
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
@@ -182,7 +187,7 @@ Send me another audio or voice to continue this note, or one of the following co
 
 
 async def msg(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    selected_note = _get_selected_note(update.effective_user.username)
+    selected_note = _get_selected_note(_get_tg_user(update))
 
     if not selected_note:
         await context.bot.send_message(
@@ -199,7 +204,7 @@ Send an audio or voice message to begin a new one."""
 
 
 async def txt(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    selected_note = _get_selected_note(update.effective_user.username)
+    selected_note = _get_selected_note(_get_tg_user(update))
 
     if not selected_note:
         await context.bot.send_message(
@@ -216,7 +221,7 @@ Send an audio or voice message to begin a new one."""
 
 
 async def done(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    selected_note = _get_selected_note(update.effective_user.username)
+    selected_note = _get_selected_note(_get_tg_user(update))
 
     if not selected_note:
         await context.bot.send_message(
@@ -226,7 +231,7 @@ Send an audio or voice message to begin a new one."""
         )
         return
 
-    _select_note(update.effective_user.username)
+    _select_note(_get_tg_user(update))
 
     await context.bot.send_message(
         chat_id=update.effective_chat.id, text="Done. Send me an audio message to start a new note."
@@ -234,7 +239,7 @@ Send an audio or voice message to begin a new one."""
 
 
 async def delete(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    selected_note = _get_selected_note(update.effective_user.username)
+    selected_note = _get_selected_note(_get_tg_user(update))
 
     if not selected_note:
         await context.bot.send_message(
@@ -245,7 +250,7 @@ Send an audio or voice message to begin a new one."""
         return
 
     selected_note.unlink()
-    _select_note(update.effective_user.username)
+    _select_note(_get_tg_user(update))
 
     await context.bot.send_message(
         chat_id=update.effective_chat.id, text="Note discarded. Send me an audio message to start a new note."
@@ -253,7 +258,7 @@ Send an audio or voice message to begin a new one."""
 
 
 async def select(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    notes = [path.name for path in _get_data(update.effective_user.username).glob("*.txt")]
+    notes = [path.name for path in _get_data(_get_tg_user(update)).glob("*.txt")]
     mapping = {f"/note_{i+1}": note for i,note in enumerate(notes)}
 
     note = update.effective_message.text
@@ -264,7 +269,7 @@ async def select(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
-    _select_note(update.effective_user.username, mapping[note])
+    _select_note(_get_tg_user(update), mapping[note])
 
     await context.bot.send_message(
             chat_id=update.effective_chat.id, text=f"""Selected note: **{mapping[note]}**
@@ -279,7 +284,7 @@ Send a voice message to append to this note, or use the following commands:
         )
 
 async def list_notes(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    notes = [path.name for path in _get_data(update.effective_user.username).glob("*.txt")]
+    notes = [path.name for path in _get_data(_get_tg_user(update)).glob("*.txt")]
     msg = "\n".join(f"/note_{i+1} - {note}" for i, note in enumerate(notes))
 
     if not msg:
@@ -298,7 +303,7 @@ async def help(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def reload(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.effective_user.username != admin:
+    if _get_tg_user(update) != admin:
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
             text="Nice try 🙄",
@@ -316,7 +321,7 @@ async def reload(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def users(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.effective_user.username != admin:
+    if _get_tg_user(update) != admin:
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
             text="Nice try 🙄",
@@ -340,6 +345,67 @@ async def users(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 
+PAYMENT_TOKEN = os.getenv("PAYMENT_TOKEN")
+
+BUY_OPTIONS = [
+    (100, 100),
+    (500, 300),
+    (1000, 500),
+    (10000, 2000),
+]
+
+
+async def buy(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Sends an invoice with shipping-payment."""
+    chat_id = update.message.chat_id
+
+    for credits, price in BUY_OPTIONS:
+        title = f"{credits} Credits"
+        description = f"Add {credits} credits to your total quota."
+        # select a payload just for you to recognize its the donation from your bot
+        payload = f"lovelaice_credits:{credits}"
+        # In order to get a provider_token see https://core.telegram.org/bots/payments#getting-a-token
+        currency = "USD"
+        # price in dollars
+        prices = [LabeledPrice(f"{credits} Credits", price)]
+
+        # optionally pass need_name=True, need_phone_number=True,
+        # need_email=True, need_shipping_address=True, is_flexible=True
+        await context.bot.send_invoice(
+            chat_id,
+            title,
+            description,
+            payload,
+            PAYMENT_TOKEN,
+            currency,
+            prices
+        )
+
+
+# after (optional) shipping, it's the pre-checkout
+async def precheckout_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Answers the PreQecheckoutQuery"""
+    query = update.pre_checkout_query
+    # check the payload, is this from your bot?
+    if not query.invoice_payload.startswith("lovelaice_credits"):
+        # answer False pre_checkout_query
+        await query.answer(ok=False, error_message="Something went wrong...")
+    else:
+        await query.answer(ok=True)
+
+
+async def successful_payment_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Confirms the successful payment."""
+    # do something after successfully receiving payment?
+    _, credits = update.effective_message.successful_payment.invoice_payload.split(":")
+    credits = int(credits)
+    user = _get_tg_user(update)
+    _update_credits(user, credits)
+    new_credits  = _get_user_data(user)['credits']
+
+    await update.effective_message.reply_text(f"Done! You now have have {new_credits} credits.")
+
+
 async def default(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
@@ -347,7 +413,7 @@ async def default(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 
-if __name__ == "__main__":
+def main():
     application = ApplicationBuilder().token(os.getenv("BOT_TOKEN")).build()
 
     start_handler = CommandHandler("start", start)
@@ -380,6 +446,15 @@ if __name__ == "__main__":
     help_handler = CommandHandler("help", help)
     application.add_handler(help_handler)
 
+    buy_handler = CommandHandler("buy", buy)
+    application.add_handler(buy_handler)
+
+    application.add_handler(PreCheckoutQueryHandler(precheckout_callback))
+
+    application.add_handler(
+        MessageHandler(filters.SUCCESSFUL_PAYMENT, successful_payment_callback)
+    )
+
     audio_handler = MessageHandler(filters.VOICE, transcribe)
     application.add_handler(audio_handler)
 
@@ -390,3 +465,7 @@ if __name__ == "__main__":
     application.add_handler(default_handler)
 
     application.run_polling()
+
+
+if __name__ == "__main__":
+    main()
