@@ -156,7 +156,7 @@ async def imagine(update: Update, context: ContextTypes.DEFAULT_TYPE):
     credits = _get_user_data(_get_tg_user(update))['credits']
 
     await context.bot.send_message(
-        chat_id=update.effective_chat.id, text=f"Done. You have {credits} left."
+        chat_id=update.effective_chat.id, text=f"Done. You have {credits} credits left."
     )
 
 
