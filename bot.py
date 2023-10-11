@@ -472,7 +472,7 @@ async def default(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 def main():
-    application = ApplicationBuilder().token(os.getenv("BOT_TOKEN")).build()
+    application = ApplicationBuilder().token(os.getenv("BOT_TOKEN")).concurrent_updates(True).build()
 
     start_handler = CommandHandler("start", start)
     application.add_handler(start_handler)
