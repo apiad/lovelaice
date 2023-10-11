@@ -1,6 +1,7 @@
 import logging
 import json
 import datetime
+from httpx import AsyncClient
 
 from pathlib import Path
 from dotenv import load_dotenv
@@ -109,6 +110,56 @@ If you need more credits, send /buy."""
     )
 
 
+async def imagine(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    data = _get_user_data(_get_tg_user(update))
+
+    if data['credits'] <= 0:
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id, text="I'm sorry but your out of credits. Send /status to check."
+        )
+        return
+
+    prompt = " ".join(context.args)
+
+    if not prompt:
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id, text="You must pass some prompt. Ex: `/imagine an astronaut riding a horse`."
+        )
+        return
+
+    async with AsyncClient() as client:
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id, text="Submitting the job to MonsterAPI."
+        )
+
+        response = await api.generate_image(client, prompt)
+        print(response, flush=True)
+
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id, text="Submitted. Waiting for response."
+        )
+
+        result = await api.resolve(response, client)
+        print(result, flush=True)
+        credits = int(result['credit_used'])
+        _update_credits(_get_tg_user(update), -credits)
+
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id, text="Job finished. I'm forwarding the image."
+        )
+
+        output = result['result']['output']
+
+        for path in output:
+            await context.bot.send_photo(update.effective_chat.id, path)
+
+    credits = _get_user_data(_get_tg_user(update))['credits']
+
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id, text=f"Done. You have {credits} left."
+    )
+
+
 async def transcribe(update: Update, context: ContextTypes.DEFAULT_TYPE):
     data = _get_user_data(_get_tg_user(update))
 
@@ -132,15 +183,22 @@ async def transcribe(update: Update, context: ContextTypes.DEFAULT_TYPE):
         text="I got the audio, uploading to MonsterAPI.",
     )
 
-    attachement = update.effective_message.effective_attachment
-    filename = getattr(attachement, 'file_name', 'voice.ogg')
+    # attachement = update.effective_message.effective_attachment
+    # filename = getattr(attachement, 'file_name', 'voice.ogg')
+    # print("Voice file is", filename, flush=True)
 
-    response = api.transcribe(content, filename)
-    await context.bot.send_message(
-        chat_id=update.effective_chat.id, text="Uploaded, waiting for reply."
-    )
+    # if filename.endswith(".oga"):
+    #     filename = "voice.ogg"
 
-    result = api.resolve(response)
+    async with AsyncClient() as client:
+        response = await api.transcribe(content, client, "voice.ogg")
+
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id, text="Uploaded, waiting for reply."
+        )
+
+        result = await api.resolve(response, client)
+
     doc = Document(result["result"]["text"])
     _update_credits(_get_tg_user(update), -int(result['credit_used']))
     selected_note = _get_selected_note(_get_tg_user(update))
@@ -439,6 +497,9 @@ def main():
 
     done_handler = CommandHandler("done", done)
     application.add_handler(done_handler)
+
+    imagine_handler = CommandHandler("imagine", imagine)
+    application.add_handler(imagine_handler)
 
     delete_handler = CommandHandler("delete", delete)
     application.add_handler(delete_handler)

@@ -3,3 +3,5 @@ python-telegram-bot
 python-dotenv
 streamlit
 pytest
+fire
+httpx[cli]
