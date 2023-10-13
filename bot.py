@@ -240,6 +240,7 @@ Send me another audio or voice to continue this note, or one of the following co
 /msg - Print note as Telegram message.
 /txt - Download note as TXT file.
 /delete - Delete this note (undoable!)
+/publish - Publish note to Telegra.ph
 /done - Finish with this note.
 """,
      parse_mode="markdown")
@@ -371,6 +372,7 @@ Send a voice message to append to this note, or use the following commands:
 /msg - Print note as Telegram message.
 /txt - Download note as TXT file.
 /delete - Delete this note (undoable!)
+/publish - Publish note to Telegra.ph
 /done - Finish with this note.
 """, parse_mode="markdown"
         )
