@@ -1,4 +1,5 @@
 import logging
+import urllib.parse
 import json
 import datetime
 from httpx import AsyncClient
@@ -30,7 +31,7 @@ with open(Path(__file__).parent / "bot_help.md") as fp:
 
 
 def _get_tg_user(update: Update):
-    return update.effective_user.username or update.effective_user.full_name or update.effective_user.id
+    return str(update.effective_user.username or update.effective_user.full_name or update.effective_user.id)
 
 
 def _get_data(user_id) -> Path:
@@ -278,6 +279,39 @@ Send an audio or voice message to begin a new one."""
         )
 
 
+async def publish(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    selected_note = _get_selected_note(_get_tg_user(update))
+
+    if not selected_note:
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id, text="""
+No note is currently selected.
+Send an audio or voice message to begin a new one."""
+        )
+        return
+
+    data = _get_user_data(_get_tg_user(update))
+
+    if 'token' not in data:
+        await context.bot.send_message("You must /login to Telegraph first.")
+        return
+
+    token = data['token']
+
+    with open(selected_note) as fp:
+        text = fp.readlines()
+        title = urllib.parse.quote_plus(text[0])
+        content = json.dumps([dict(tag="p", children=text)])
+
+    async with AsyncClient() as client:
+        page = await client.get(f"https://api.telegra.ph/createPage?access_token={token}&title={title}&content={content}")
+        url = page.json()['result']['url']
+
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id, text=f"Note published to Telegraph.\n\n{url}"
+        )
+
+
 async def done(update: Update, context: ContextTypes.DEFAULT_TYPE):
     selected_note = _get_selected_note(_get_tg_user(update))
 
@@ -403,6 +437,24 @@ async def users(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 
+async def login(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user = _get_tg_user(update)
+    data = _get_user_data(user)
+
+    async with AsyncClient() as client:
+        if 'token' not in data:
+            response = await client.get(f"https://api.telegra.ph/createAccount?short_name=My+Lovelaice+Notes&author_name={update.effective_user.full_name}")
+            response = response.json()
+            data['token'] = response['result']['access_token']
+            _store_user_data(user, data)
+
+        token = data['token']
+        response = await client.get(f"https://api.telegra.ph/getAccountInfo?access_token={token}&fields=[\"auth_url\"]")
+        auth_url = response.json()['result']['auth_url']
+
+    await context.bot.send_message(update.effective_chat.id, text=f"Click this link to login to your private notes Telegraph account:\n\n{auth_url}")
+
+
 PAYMENT_TOKEN = os.getenv("PAYMENT_TOKEN")
 
 BUY_OPTIONS = [
@@ -495,6 +547,9 @@ def main():
     txt_handler = CommandHandler("txt", txt)
     application.add_handler(txt_handler)
 
+    publish_handler = CommandHandler("publish", publish)
+    application.add_handler(publish_handler)
+
     done_handler = CommandHandler("done", done)
     application.add_handler(done_handler)
 
@@ -506,6 +561,9 @@ def main():
 
     help_handler = CommandHandler("help", help)
     application.add_handler(help_handler)
+
+    login_handler = CommandHandler("login", login)
+    application.add_handler(login_handler)
 
     buy_handler = CommandHandler("buy", buy)
     application.add_handler(buy_handler)

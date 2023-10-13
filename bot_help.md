@@ -10,6 +10,8 @@ You can also say "begin list", "end list" and the items you say in between will 
 
 As a bonus, you can use the /imagine command to generate images, one at a time, using Stable Diffusion.
 
+This bot can publish notes to Telegraph. Send /login to connect your account and edit those notes.
+
 First-time users get 100 free credits (~80 minutes of recording or ~12 images).
 To check your credits, send /status.
 To buy more credits, send /buy.
