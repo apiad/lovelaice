@@ -7,9 +7,9 @@ class Chunk:
 
 
 class Document:
-    def __init__(self, raw) -> None:
+    def __init__(self, raw, parse=True) -> None:
         self.raw = raw
-        self.sentences = Parser().parse(self._split(self.raw))
+        self.sentences = Parser().parse(self._split(self.raw)) if parse else raw.split("\n")
         self.chunks = []
 
     def _split(self, text: str):

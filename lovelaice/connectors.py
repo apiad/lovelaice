@@ -3,9 +3,24 @@ import asyncio
 import time
 
 
+TEXT_MODELS = [
+    "codellama-13b-instruct",
+    "codellama-34b-instruct",
+    "falcon-40-instruct",
+    "falcon-7b-instruct",
+    "flan-t5-instruct",
+    "llama2-7b-chat",
+    "mpt-30b-instruct",
+    "mpt-7b-instruct",
+    "open-llama-instruct",
+    "zephyr-7b-beta",
+]
+
+
 class MonsterAPI:
-    def __init__(self, api_key:str, pooling:float=1) -> None:
+    def __init__(self, api_key:str, pooling:float=1, verbose:bool=True) -> None:
         self.api_key = api_key
+        self.verbose = verbose
         self.headers = {
             "accept": "application/json",
             "authorization": f"Bearer {self.api_key}",
@@ -47,8 +62,15 @@ class MonsterAPI:
     async def generate_image(self, client:AsyncClient, prompt:str):
         url = "https://api.monsterapi.ai/v1/generate/sdxl-base"
 
+        aspect = "square"
+
+        if '-h' in prompt:
+            aspect = "portrait"
+        elif "-w" in prompt:
+            aspect = "landscape"
+
         payload = self.build_payload(
-            aspect_ratio= "square",
+            aspect_ratio= aspect,
             negprompt= "deformed, bad anatomy, disfigured, poorly drawn face, out of focus",
             prompt=prompt,
             samples=1
@@ -57,6 +79,14 @@ class MonsterAPI:
         return await client.post(url, json=payload, headers=self.headers)
 
     async def generate_text(self, prompt:str, model:str, client:AsyncClient, **kwargs):
+        if model not in TEXT_MODELS:
+            models = [m for m in TEXT_MODELS if m.startswith(model)]
+
+            if not models:
+                raise ValueError(f"Unknown model {model}")
+
+            model = models[0]
+
         url = "https://api.monsterapi.ai/v1/generate/%s" % model
         payload = self.build_payload(prompt=prompt, **kwargs)
         return await client.post(url, json=payload, headers=self.headers)
@@ -64,9 +94,11 @@ class MonsterAPI:
     async def resolve(self, response, client:AsyncClient):
         try:
             callback = response.json()
-            print(callback, flush=True)
+            if self.verbose:
+                print(callback, flush=True)
         except:
-            print(response, flush=True)
+            if self.verbose:
+                print(response, flush=True)
             raise
 
         if response.status_code != 200:
@@ -79,7 +111,9 @@ class MonsterAPI:
         while True:
             response = await client.get(status_url, headers=self.headers)
             response = response.json()
-            print(response, flush=True)
+
+            if self.verbose:
+                print(response, flush=True)
 
             if response['status'] in ["IN_PROGRESS", "IN_QUEUE"]:
                 await asyncio.sleep(pool)

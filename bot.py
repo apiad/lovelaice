@@ -200,8 +200,13 @@ async def transcribe(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         result = await api.resolve(response, client)
 
-    doc = Document(result["result"]["text"])
     _update_credits(_get_tg_user(update), -int(result['credit_used']))
+
+    await _process_text(result['result']['text'], update, context)
+
+
+async def _process_text(text, update: Update, context: ContextTypes.DEFAULT_TYPE):
+    doc = Document(text, parse=False)
     selected_note = _get_selected_note(_get_tg_user(update))
     data = _get_user_data(_get_tg_user(update))
 
@@ -209,7 +214,7 @@ async def transcribe(update: Update, context: ContextTypes.DEFAULT_TYPE):
         transcript_path = selected_note
     else:
         title = doc.sentences[0]
-        title = title[:25]
+        title = title[:50]
         title = "".join([c for c in title if c.isalnum() or c == " "])
         now = datetime.datetime.now().isoformat()
 
@@ -222,7 +227,13 @@ async def transcribe(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         fp.write("\n")
 
-    summary = str(doc)[:100] + "..."
+    with transcript_path.open("r") as fp:
+        full_text = fp.read()
+
+    if len(full_text) < 512:
+        summary = full_text
+    else:
+        summary = full_text[:256] + "\n[...]\n" + full_text[-256:]
 
     _select_note(_get_tg_user(update), transcript_path.name)
 
@@ -233,14 +244,15 @@ async def transcribe(update: Update, context: ContextTypes.DEFAULT_TYPE):
 Remaining credits: {data['credits']}
 
 Summary:
-_{summary}_
+_{summary.strip()}_
 
-Send me another audio or voice to continue this note, or one of the following commands:
+Send an voice or text message to continue this note, or use one of the following commands:
 
+/rewrite - Rewrite and improve this note with AI.
 /msg - Print note as Telegram message.
 /txt - Download note as TXT file.
-/delete - Delete this note (undoable!)
-/publish - Publish note to Telegra.ph
+/delete - Delete this note. Undoable!
+/publish - Publish note online to Telegraph.
 /done - Finish with this note.
 """,
      parse_mode="markdown")
@@ -258,8 +270,13 @@ Send an audio or voice message to begin a new one."""
         return
 
     with open(selected_note) as fp:
+        text = fp.read()
+
+        if len(text) > 2048:
+            text = text[:2048] + "... [cut here].\n\nUse /txt to see the full note."
+
         await context.bot.send_message(
-            chat_id=update.effective_chat.id, text=fp.read()
+            chat_id=update.effective_chat.id, text=text
         )
 
 
@@ -301,11 +318,13 @@ Send an audio or voice message to begin a new one."""
 
     with open(selected_note) as fp:
         text = fp.readlines()
-        title = urllib.parse.quote_plus(text[0])
-        content = json.dumps([dict(tag="p", children=text)])
+        title = text[0].strip().replace(" ", "+")
+        content = json.dumps([dict(tag="p", children=[(t.strip()).replace(" ", "+")]) for t in text], ensure_ascii=False, separators=(',',':'))
+        print(content, flush=True)
 
     async with AsyncClient() as client:
-        page = await client.get(f"https://api.telegra.ph/createPage?access_token={token}&title={title}&content={content}")
+        page = await client.get(f"https://api.telegra.ph/createPage?access_token={token}&title=\"{title}\"&content={content}")
+        print(page, flush=True)
         url = page.json()['result']['url']
 
         await context.bot.send_message(
@@ -367,15 +386,17 @@ async def select(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await context.bot.send_message(
             chat_id=update.effective_chat.id, text=f"""Selected note: **{mapping[note]}**
 
-Send a voice message to append to this note, or use the following commands:
+Send a voice or text message to continue this note, or use one of the following commands:
 
+/rewrite - Rewrite and improve this note with AI.
 /msg - Print note as Telegram message.
 /txt - Download note as TXT file.
-/delete - Delete this note (undoable!)
-/publish - Publish note to Telegra.ph
+/delete - Delete this note. Undoable!
+/publish - Publish note online to Telegraph.
 /done - Finish with this note.
 """, parse_mode="markdown"
         )
+
 
 async def list_notes(update: Update, context: ContextTypes.DEFAULT_TYPE):
     notes = [path.name for path in _get_data(_get_tg_user(update)).glob("*.txt")]
@@ -519,10 +540,86 @@ async def successful_payment_callback(update: Update, context: ContextTypes.DEFA
 
 
 async def default(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await context.bot.send_message(
-        chat_id=update.effective_chat.id,
-        text=f"I don't understand 😞",
-    )
+    text = update.effective_message.text
+    await _process_text(text, update, context)
+
+
+REWRITE_PROMPT = """
+Rewrite the following text to improve the grammar, punctuation and style.
+Cut sentences when necessary to make them crisp and use active voice.
+Respect the tone.
+Do not add anything not explicitly said in the text.
+
+## Original text
+
+{0}
+"""
+
+
+async def rewrite(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    data = _get_user_data(_get_tg_user(update))
+
+    if data['credits'] <= 0:
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id, text="I'm sorry but your out of credits. Send /status to check."
+        )
+        return
+
+    selected_note = _get_selected_note(_get_tg_user(update))
+
+    if not selected_note:
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id, text="""
+No note is currently selected.
+Send /list to select a note for rewriting."""
+        )
+        return
+
+    with selected_note.open("r") as fp:
+        text = fp.read()
+
+    chunks = [t.strip() for t in text.split("\n\n") if t.strip()]
+    split_chunks = []
+
+    # Split into 1024-ish chunks but respecting sentence boundaries
+
+    for chunk in chunks:
+        if len(chunk) <= 1024:
+            split_chunks.append(chunk)
+        else:
+            sentences = chunk.split("\n")
+            current = ""
+
+            for sentence in sentences:
+                current += sentence
+
+                if len(current) >= 1024:
+                    split_chunks.append(current)
+                    current = ""
+
+            if current:
+                split_chunks.append(current)
+
+    results = []
+    cost = 0
+
+    for i, chunk in enumerate(split_chunks):
+        await update.effective_chat.send_message(f"Rewriting chunk {i+1}/{len(split_chunks)}...")
+
+        async with AsyncClient() as client:
+            response = await api.generate_text(prompt=REWRITE_PROMPT.format(chunk), model="zephyr", client=client, max_length=len(chunk)*2)
+            result = await api.resolve(response, client=client)
+
+        credits = int(result['credit_used'])
+        cost += credits
+        results.append(result['result']['text'])
+
+    _update_credits(_get_tg_user(update), -cost)
+    _select_note(_get_tg_user(update))
+    await update.effective_chat.send_message(f"Creating new note with resulting text.")
+
+    text = "\n\n".join(results)
+    await _process_text(text, update, context)
 
 
 def main():
@@ -551,6 +648,9 @@ def main():
 
     publish_handler = CommandHandler("publish", publish)
     application.add_handler(publish_handler)
+
+    rewrite_handler = CommandHandler("rewrite", rewrite)
+    application.add_handler(rewrite_handler)
 
     done_handler = CommandHandler("done", done)
     application.add_handler(done_handler)
@@ -582,7 +682,7 @@ def main():
     select_handler = MessageHandler(filters.COMMAND & filters.Regex(r"/note_\d+"), select)
     application.add_handler(select_handler)
 
-    default_handler = MessageHandler(filters.TEXT, default)
+    default_handler = MessageHandler(filters.TEXT & ~filters.COMMAND, default)
     application.add_handler(default_handler)
 
     application.run_polling()

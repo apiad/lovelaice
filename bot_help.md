@@ -2,6 +2,12 @@ I can transcribe audio messages for you and store them as text notes. You can se
 
 Start by sending an audio message, which will create a new note. After the transcription is finished, you can send more audios to continue the same note, or create new notes.
 
+*You can also directly send a text note and it will interpreted exactly as an already transcribed audio note.*
+
+When done, you can use /rewrite to have an AI rewrite and improve your text, using SOTA open-source LLMs.
+
+You can also send /prompt to have an AI interpret your note as a query and append its answer. You can use this to generate short fragments of text, brainstorm ideas, etc.
+
 Send /list to see all stored notes.
 
 In your message, you can use voice commands to do some formatting. For example, try saying "title, here is a title" or "heading, this is a heading" and the corresponding text will be formatted as title or heading in markdown (using # or ##).
