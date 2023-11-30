@@ -22,7 +22,7 @@ from lovelaice import MonsterAPI, Document
 
 load_dotenv()
 api = MonsterAPI(api_key=os.getenv("MONSTER_API"))
-admin = os.getenv('ADMIN')
+admin = os.getenv("ADMIN")
 
 data_folder = Path(__file__).parent / "data" / "bot"
 
@@ -31,7 +31,11 @@ with open(Path(__file__).parent / "bot_help.md") as fp:
 
 
 def _get_tg_user(update: Update):
-    return str(update.effective_user.username or update.effective_user.full_name or update.effective_user.id)
+    return str(
+        update.effective_user.username
+        or update.effective_user.full_name
+        or update.effective_user.id
+    )
 
 
 def _get_data(user_id) -> Path:
@@ -89,14 +93,15 @@ logging.basicConfig(
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await context.bot.send_message(
-        chat_id=update.effective_chat.id, text="""
+        chat_id=update.effective_chat.id,
+        text="""
 Send me an audio or voice message and I will transcribe it for you.
 
 You can send more than one audio to make one larger transcription.
 
 When done, you can download the transcription file in several formats.
 
-Send /help for detailed instructions."""
+Send /help for detailed instructions.""",
     )
 
 
@@ -104,19 +109,21 @@ async def status(update: Update, context: ContextTypes.DEFAULT_TYPE):
     data = _get_user_data(_get_tg_user(update))
 
     await context.bot.send_message(
-        chat_id=update.effective_chat.id, text=f"""
+        chat_id=update.effective_chat.id,
+        text=f"""
 Credits: {data['credits']}
 
-If you need more credits, send /buy."""
+If you need more credits, send /buy.""",
     )
 
 
 async def imagine(update: Update, context: ContextTypes.DEFAULT_TYPE):
     data = _get_user_data(_get_tg_user(update))
 
-    if data['credits'] <= 0:
+    if data["credits"] <= 0:
         await context.bot.send_message(
-            chat_id=update.effective_chat.id, text="I'm sorry but your out of credits. Send /status to check."
+            chat_id=update.effective_chat.id,
+            text="I'm sorry but your out of credits. Send /status to check.",
         )
         return
 
@@ -124,7 +131,8 @@ async def imagine(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if not prompt:
         await context.bot.send_message(
-            chat_id=update.effective_chat.id, text="You must pass some prompt. Ex: `/imagine an astronaut riding a horse`."
+            chat_id=update.effective_chat.id,
+            text="You must pass some prompt. Ex: `/imagine an astronaut riding a horse`.",
         )
         return
 
@@ -142,19 +150,20 @@ async def imagine(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         result = await api.resolve(response, client)
         print(result, flush=True)
-        credits = int(result['credit_used'])
+        credits = int(result["credit_used"])
         _update_credits(_get_tg_user(update), -credits)
 
         await context.bot.send_message(
-            chat_id=update.effective_chat.id, text="Job finished. I'm forwarding the image."
+            chat_id=update.effective_chat.id,
+            text="Job finished. I'm forwarding the image.",
         )
 
-        output = result['result']['output']
+        output = result["result"]["output"]
 
         for path in output:
             await context.bot.send_photo(update.effective_chat.id, path)
 
-    credits = _get_user_data(_get_tg_user(update))['credits']
+    credits = _get_user_data(_get_tg_user(update))["credits"]
 
     await context.bot.send_message(
         chat_id=update.effective_chat.id, text=f"Done. You have {credits} credits left."
@@ -164,9 +173,10 @@ async def imagine(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def transcribe(update: Update, context: ContextTypes.DEFAULT_TYPE):
     data = _get_user_data(_get_tg_user(update))
 
-    if data['credits'] <= 0:
+    if data["credits"] <= 0:
         await context.bot.send_message(
-            chat_id=update.effective_chat.id, text="I'm sorry but your out of credits. Send /status to check."
+            chat_id=update.effective_chat.id,
+            text="I'm sorry but your out of credits. Send /status to check.",
         )
         return
 
@@ -200,9 +210,9 @@ async def transcribe(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         result = await api.resolve(response, client)
 
-    _update_credits(_get_tg_user(update), -int(result['credit_used']))
+    _update_credits(_get_tg_user(update), -int(result["credit_used"]))
 
-    await _process_text(result['result']['text'], update, context)
+    await _process_text(result["result"]["text"], update, context)
 
 
 async def _process_text(text, update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -239,9 +249,7 @@ async def _process_text(text, update: Update, context: ContextTypes.DEFAULT_TYPE
 
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
-        text=f"""The transcription is ready.
-
-Remaining credits: {data['credits']}
+        text=f"""Remaining credits: {data['credits']}
 
 Summary:
 _{summary.strip()}_
@@ -249,13 +257,15 @@ _{summary.strip()}_
 Send an voice or text message to continue this note, or use one of the following commands:
 
 /rewrite - Rewrite and improve this note with AI.
+/prompt - Pass this note as prompt to the AI.
 /msg - Print note as Telegram message.
 /txt - Download note as TXT file.
 /delete - Delete this note. Undoable!
 /publish - Publish note online to Telegraph.
 /done - Finish with this note.
 """,
-     parse_mode="markdown")
+        parse_mode="markdown",
+    )
 
 
 async def msg(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -263,9 +273,10 @@ async def msg(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if not selected_note:
         await context.bot.send_message(
-            chat_id=update.effective_chat.id, text="""
+            chat_id=update.effective_chat.id,
+            text="""
 No note is currently selected.
-Send an audio or voice message to begin a new one."""
+Send an audio or voice message to begin a new one.""",
         )
         return
 
@@ -275,9 +286,7 @@ Send an audio or voice message to begin a new one."""
         if len(text) > 2048:
             text = text[:2048] + "... [cut here].\n\nUse /txt to see the full note."
 
-        await context.bot.send_message(
-            chat_id=update.effective_chat.id, text=text
-        )
+        await context.bot.send_message(chat_id=update.effective_chat.id, text=text)
 
 
 async def txt(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -285,9 +294,10 @@ async def txt(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if not selected_note:
         await context.bot.send_message(
-            chat_id=update.effective_chat.id, text="""
+            chat_id=update.effective_chat.id,
+            text="""
 No note is currently selected.
-Send an audio or voice message to begin a new one."""
+Send an audio or voice message to begin a new one.""",
         )
         return
 
@@ -302,33 +312,41 @@ async def publish(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if not selected_note:
         await context.bot.send_message(
-            chat_id=update.effective_chat.id, text="""
+            chat_id=update.effective_chat.id,
+            text="""
 No note is currently selected.
-Send an audio or voice message to begin a new one."""
+Send an audio or voice message to begin a new one.""",
         )
         return
 
     data = _get_user_data(_get_tg_user(update))
 
-    if 'token' not in data:
+    if "token" not in data:
         await context.bot.send_message("You must /login to Telegraph first.")
         return
 
-    token = data['token']
+    token = data["token"]
 
     with open(selected_note) as fp:
         text = fp.readlines()
         title = text[0].strip().replace(" ", "+")
-        content = json.dumps([dict(tag="p", children=[(t.strip()).replace(" ", "+")]) for t in text], ensure_ascii=False, separators=(',',':'))
+        content = json.dumps(
+            [dict(tag="p", children=[(t.strip()).replace(" ", "+")]) for t in text],
+            ensure_ascii=False,
+            separators=(",", ":"),
+        )
         print(content, flush=True)
 
     async with AsyncClient() as client:
-        page = await client.get(f"https://api.telegra.ph/createPage?access_token={token}&title=\"{title}\"&content={content}")
+        page = await client.get(
+            f'https://api.telegra.ph/createPage?access_token={token}&title="{title}"&content={content}'
+        )
         print(page, flush=True)
-        url = page.json()['result']['url']
+        url = page.json()["result"]["url"]
 
         await context.bot.send_message(
-            chat_id=update.effective_chat.id, text=f"Note published to Telegraph.\n\n{url}"
+            chat_id=update.effective_chat.id,
+            text=f"Note published to Telegraph.\n\n{url}",
         )
 
 
@@ -337,16 +355,18 @@ async def done(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if not selected_note:
         await context.bot.send_message(
-            chat_id=update.effective_chat.id, text="""
+            chat_id=update.effective_chat.id,
+            text="""
 No note is currently selected.
-Send an audio or voice message to begin a new one."""
+Send an audio or voice message to begin a new one.""",
         )
         return
 
     _select_note(_get_tg_user(update))
 
     await context.bot.send_message(
-        chat_id=update.effective_chat.id, text="Done. Send me an audio message to start a new note."
+        chat_id=update.effective_chat.id,
+        text="Done. Send me an audio message to start a new note.",
     )
 
 
@@ -355,9 +375,10 @@ async def delete(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if not selected_note:
         await context.bot.send_message(
-            chat_id=update.effective_chat.id, text="""
+            chat_id=update.effective_chat.id,
+            text="""
 No note is currently selected.
-Send an audio or voice message to begin a new one."""
+Send an audio or voice message to begin a new one.""",
         )
         return
 
@@ -365,13 +386,14 @@ Send an audio or voice message to begin a new one."""
     _select_note(_get_tg_user(update))
 
     await context.bot.send_message(
-        chat_id=update.effective_chat.id, text="Note discarded. Send me an audio message to start a new note."
+        chat_id=update.effective_chat.id,
+        text="Note discarded. Send me an audio message to start a new note.",
     )
 
 
 async def select(update: Update, context: ContextTypes.DEFAULT_TYPE):
     notes = [path.name for path in _get_data(_get_tg_user(update)).glob("*.txt")]
-    mapping = {f"/note_{i+1}": note for i,note in enumerate(notes)}
+    mapping = {f"/note_{i+1}": note for i, note in enumerate(notes)}
 
     note = update.effective_message.text
 
@@ -384,18 +406,21 @@ async def select(update: Update, context: ContextTypes.DEFAULT_TYPE):
     _select_note(_get_tg_user(update), mapping[note])
 
     await context.bot.send_message(
-            chat_id=update.effective_chat.id, text=f"""Selected note: **{mapping[note]}**
+        chat_id=update.effective_chat.id,
+        text=f"""Selected note: **{mapping[note]}**
 
 Send a voice or text message to continue this note, or use one of the following commands:
 
 /rewrite - Rewrite and improve this note with AI.
+/prompt - Pass this note as prompt to the AI.
 /msg - Print note as Telegram message.
 /txt - Download note as TXT file.
 /delete - Delete this note. Undoable!
 /publish - Publish note online to Telegraph.
 /done - Finish with this note.
-""", parse_mode="markdown"
-        )
+""",
+        parse_mode="markdown",
+    )
 
 
 async def list_notes(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -403,17 +428,16 @@ async def list_notes(update: Update, context: ContextTypes.DEFAULT_TYPE):
     msg = "\n".join(f"/note_{i+1} - {note}" for i, note in enumerate(notes))
 
     if not msg:
-        msg = "You don't have any notes yet. Send an audio message to create a new note."
+        msg = (
+            "You don't have any notes yet. Send an audio message to create a new note."
+        )
 
-    await context.bot.send_message(
-        chat_id=update.effective_chat.id, text=msg
-    )
+    await context.bot.send_message(chat_id=update.effective_chat.id, text=msg)
 
 
 async def help(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await context.bot.send_message(
-        chat_id=update.effective_chat.id,
-        text=help_text, parse_mode="markdown"
+        chat_id=update.effective_chat.id, text=help_text, parse_mode="markdown"
     )
 
 
@@ -447,7 +471,7 @@ async def users(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     for user in data_folder.iterdir():
         try:
-            credits = _get_user_data(user.name)['credits']
+            credits = _get_user_data(user.name)["credits"]
             notes = len(list(user.glob("*.txt")))
             users.append(f"{user.name} - 📝 {notes} 🪙 {credits}")
         except Exception as e:
@@ -455,8 +479,7 @@ async def users(update: Update, context: ContextTypes.DEFAULT_TYPE):
             pass
 
     await context.bot.send_message(
-        chat_id=update.effective_chat.id,
-        text="\n".join(users)
+        chat_id=update.effective_chat.id, text="\n".join(users)
     )
 
 
@@ -465,17 +488,24 @@ async def login(update: Update, context: ContextTypes.DEFAULT_TYPE):
     data = _get_user_data(user)
 
     async with AsyncClient() as client:
-        if 'token' not in data:
-            response = await client.get(f"https://api.telegra.ph/createAccount?short_name=My+Lovelaice+Notes&author_name={update.effective_user.full_name}")
+        if "token" not in data:
+            response = await client.get(
+                f"https://api.telegra.ph/createAccount?short_name=My+Lovelaice+Notes&author_name={update.effective_user.full_name}"
+            )
             response = response.json()
-            data['token'] = response['result']['access_token']
+            data["token"] = response["result"]["access_token"]
             _store_user_data(user, data)
 
-        token = data['token']
-        response = await client.get(f"https://api.telegra.ph/getAccountInfo?access_token={token}&fields=[\"auth_url\"]")
-        auth_url = response.json()['result']['auth_url']
+        token = data["token"]
+        response = await client.get(
+            f'https://api.telegra.ph/getAccountInfo?access_token={token}&fields=["auth_url"]'
+        )
+        auth_url = response.json()["result"]["auth_url"]
 
-    await context.bot.send_message(update.effective_chat.id, text=f"Click this link to login to your private notes Telegraph account:\n\n{auth_url}")
+    await context.bot.send_message(
+        update.effective_chat.id,
+        text=f"Click this link to login to your private notes Telegraph account:\n\n{auth_url}",
+    )
 
 
 PAYMENT_TOKEN = os.getenv("PAYMENT_TOKEN")
@@ -505,18 +535,14 @@ async def buy(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         # optionally pass need_name=True, need_phone_number=True,
         # need_email=True, need_shipping_address=True, is_flexible=True
         await context.bot.send_invoice(
-            chat_id,
-            title,
-            description,
-            payload,
-            PAYMENT_TOKEN,
-            currency,
-            prices
+            chat_id, title, description, payload, PAYMENT_TOKEN, currency, prices
         )
 
 
 # after (optional) shipping, it's the pre-checkout
-async def precheckout_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def precheckout_callback(
+    update: Update, context: ContextTypes.DEFAULT_TYPE
+) -> None:
     """Answers the PreQecheckoutQuery"""
     query = update.pre_checkout_query
     # check the payload, is this from your bot?
@@ -527,16 +553,20 @@ async def precheckout_callback(update: Update, context: ContextTypes.DEFAULT_TYP
         await query.answer(ok=True)
 
 
-async def successful_payment_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def successful_payment_callback(
+    update: Update, context: ContextTypes.DEFAULT_TYPE
+) -> None:
     """Confirms the successful payment."""
     # do something after successfully receiving payment?
     _, credits = update.effective_message.successful_payment.invoice_payload.split(":")
     credits = int(credits)
     user = _get_tg_user(update)
     _update_credits(user, credits)
-    new_credits  = _get_user_data(user)['credits']
+    new_credits = _get_user_data(user)["credits"]
 
-    await update.effective_message.reply_text(f"Done! You now have have {new_credits} credits.")
+    await update.effective_message.reply_text(
+        f"Done! You now have have {new_credits} credits."
+    )
 
 
 async def default(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -559,9 +589,10 @@ Do not add anything not explicitly said in the text.
 async def rewrite(update: Update, context: ContextTypes.DEFAULT_TYPE):
     data = _get_user_data(_get_tg_user(update))
 
-    if data['credits'] <= 0:
+    if data["credits"] <= 0:
         await context.bot.send_message(
-            chat_id=update.effective_chat.id, text="I'm sorry but your out of credits. Send /status to check."
+            chat_id=update.effective_chat.id,
+            text="I'm sorry but your out of credits. Send /status to check.",
         )
         return
 
@@ -569,9 +600,10 @@ async def rewrite(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if not selected_note:
         await context.bot.send_message(
-            chat_id=update.effective_chat.id, text="""
+            chat_id=update.effective_chat.id,
+            text="""
 No note is currently selected.
-Send /list to select a note for rewriting."""
+Send /list to select a note for rewriting.""",
         )
         return
 
@@ -604,15 +636,22 @@ Send /list to select a note for rewriting."""
     cost = 0
 
     for i, chunk in enumerate(split_chunks):
-        await update.effective_chat.send_message(f"Rewriting chunk {i+1}/{len(split_chunks)}...")
+        await update.effective_chat.send_message(
+            f"Rewriting chunk {i+1}/{len(split_chunks)}..."
+        )
 
         async with AsyncClient() as client:
-            response = await api.generate_text(prompt=REWRITE_PROMPT.format(chunk), model="zephyr", client=client, max_length=len(chunk)*2)
+            response = await api.generate_text(
+                prompt=REWRITE_PROMPT.format(chunk),
+                model="zephyr",
+                client=client,
+                max_length=len(chunk) * 2,
+            )
             result = await api.resolve(response, client=client)
 
-        credits = int(result['credit_used'])
+        credits = int(result["credit_used"])
         cost += credits
-        results.append(result['result']['text'])
+        results.append(result["result"]["text"])
 
     _update_credits(_get_tg_user(update), -cost)
     _select_note(_get_tg_user(update))
@@ -622,8 +661,57 @@ Send /list to select a note for rewriting."""
     await _process_text(text, update, context)
 
 
+async def prompt(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    data = _get_user_data(_get_tg_user(update))
+
+    if data["credits"] <= 0:
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text="I'm sorry but your out of credits. Send /status to check.",
+        )
+        return
+
+    selected_note = _get_selected_note(_get_tg_user(update))
+
+    if not selected_note:
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text="""
+No note is currently selected.
+Send /list to select a note.""",
+        )
+        return
+
+    with selected_note.open("r") as fp:
+        text = fp.read()
+
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id, text="Sending prompt..."
+    )
+
+    async with AsyncClient() as client:
+        response = await api.generate_text(
+            prompt=text, model="zephyr", client=client, max_length=4096
+        )
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id, text="Waiting for response..."
+        )
+        result = await api.resolve(response, client=client)
+
+    credits = int(result["credit_used"])
+    result = result["result"]["text"]
+    _update_credits(_get_tg_user(update), -credits)
+
+    await _process_text(result, update, context)
+
+
 def main():
-    application = ApplicationBuilder().token(os.getenv("BOT_TOKEN")).concurrent_updates(True).build()
+    application = (
+        ApplicationBuilder()
+        .token(os.getenv("BOT_TOKEN"))
+        .concurrent_updates(True)
+        .build()
+    )
 
     start_handler = CommandHandler("start", start)
     application.add_handler(start_handler)
@@ -652,6 +740,9 @@ def main():
     rewrite_handler = CommandHandler("rewrite", rewrite)
     application.add_handler(rewrite_handler)
 
+    prompt_handler = CommandHandler("prompt", prompt)
+    application.add_handler(prompt_handler)
+
     done_handler = CommandHandler("done", done)
     application.add_handler(done_handler)
 
@@ -679,7 +770,9 @@ def main():
     audio_handler = MessageHandler(filters.VOICE, transcribe)
     application.add_handler(audio_handler)
 
-    select_handler = MessageHandler(filters.COMMAND & filters.Regex(r"/note_\d+"), select)
+    select_handler = MessageHandler(
+        filters.COMMAND & filters.Regex(r"/note_\d+"), select
+    )
     application.add_handler(select_handler)
 
     default_handler = MessageHandler(filters.TEXT & ~filters.COMMAND, default)
