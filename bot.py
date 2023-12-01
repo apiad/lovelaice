@@ -635,8 +635,12 @@ Send /list to select a note for rewriting.""",
     results = []
     cost = 0
 
+    message = await update.effective_chat.send_message(
+        f"Rewriting chunk 0/{len(split_chunks)}..."
+    )
+
     for i, chunk in enumerate(split_chunks):
-        await update.effective_chat.send_message(
+        await message.edit_text(
             f"Rewriting chunk {i+1}/{len(split_chunks)}..."
         )
 
@@ -655,7 +659,7 @@ Send /list to select a note for rewriting.""",
 
     _update_credits(_get_tg_user(update), -cost)
     _select_note(_get_tg_user(update))
-    await update.effective_chat.send_message(f"Creating new note with resulting text.")
+    await message.edit_text(f"Creating new note with resulting text.")
 
     text = "\n\n".join(results)
     await _process_text(text, update, context)
