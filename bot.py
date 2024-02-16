@@ -575,14 +575,12 @@ async def default(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 REWRITE_PROMPT = """
-Rewrite the following text to improve the grammar, punctuation and style.
-Cut sentences when necessary to make them crisp and use active voice.
-Respect the tone.
+Rewrite the following text between quotes to improve the grammar, punctuation and style.
+Split sentences when necessary to make them crisp and use active voice.
+Respect the original tone.
 Do not add anything not explicitly said in the text.
 
-## Original text
-
-{0}
+"{0}"
 """
 
 
@@ -659,7 +657,7 @@ Send /list to select a note for rewriting.""",
 
     _update_credits(_get_tg_user(update), -cost)
     _select_note(_get_tg_user(update))
-    await message.edit_text(f"Creating new note with resulting text.")
+    await message.edit_text(f"Done. Creating new note with resulting text.")
 
     text = "\n\n".join(results)
     await _process_text(text, update, context)
@@ -671,7 +669,7 @@ async def prompt(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if data["credits"] <= 0:
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
-            text="I'm sorry but your out of credits. Send /status to check.",
+            text="I'm sorry but you're out of credits. Send /status to check.",
         )
         return
 

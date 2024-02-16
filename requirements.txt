@@ -5,3 +5,4 @@ streamlit
 pytest
 fire
 httpx[cli]
+flet
