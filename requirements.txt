@@ -1,8 +1,5 @@
-requests
-python-telegram-bot
 python-dotenv
-streamlit
 pytest
 fire
-httpx[cli]
-flet
+mistralai
+pydantic
