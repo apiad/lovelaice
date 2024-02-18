@@ -1,8 +1,9 @@
 import os
+import time
 import dotenv
 import argparse
 from mistralai.client import MistralClient
-from .core import query_async
+from .core import query
 
 
 dotenv.load_dotenv()
@@ -17,9 +18,9 @@ if __name__ == "__main__":
     args = parser.parse_args()
     client = MistralClient(api_key=os.getenv("MISTRAL_API_KEY"))
 
-    query = " ".join(args.query)
+    prompt = " ".join(args.query)
 
-    for response in query_async(query, client, args.model):
+    for response in query(prompt, client, args.model):
         print(response, end="", flush=True)
 
     print()
