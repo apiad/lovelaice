@@ -103,9 +103,8 @@ explain briefly the result of the operation.
 
 class Interpreter(Tool):
     """
-    When the user requests something that can be answered by
-    running Python code, e.g., evaluating a complicated formula,
-    making datetime arithmetics, generating random numbers, etc.
+    When the user asks a mathematical question that can
+    be solved with a simple Python function.
     """
 
     def prompt(self, query) -> str:
@@ -161,3 +160,25 @@ Function definition:
         result = locals["result"]
 
         yield f"\nResult: {result}"
+
+
+class Codegen(Tool):
+    """
+    When the user makes a general question about programming or
+    explicitly asks to generate code in a given programming language.
+    """
+
+    def __init__(self) -> None:
+        self.skip_use = True
+
+    def prompt(self, query) -> str:
+        return f"""
+Answer the following user query about programming with
+a general explanation in broad terms, followed by
+one or more examples of code, as necessary.
+
+Enclose all code examples in ``` with the corresponding
+programming language identifier.
+
+Query: {query}
+"""

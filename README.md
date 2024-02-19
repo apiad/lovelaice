@@ -17,7 +17,16 @@ Before using Lovelaice, you will need an API key for [Mistral](https://mistral.a
 
     export MISTRAL_API_KEY="..."
 
-You can use `lovelaice` from the command line to ask something causal like:
+You can use `lovelaice` from the command line to ask anything.
+Lovelaice understands many different types of requests, and will
+employ different tools according to the question.
+
+You can also use Lovelaice in interactive mode just by typing `lovelaice` without a query.
+It will launch a conversation loop that you can close at any time with Ctrl+C.
+
+### Chat
+
+You can ask a casual question about virtually anything:
 
     $ lovelaice what is the meaning of life
 
@@ -27,6 +36,8 @@ You can use `lovelaice` from the command line to ask something causal like:
     beliefs about the purpose and meaning of life.
 
     [...]
+
+### Bash
 
 You can also ask `lovelaice` to do something in your terminal:
 
@@ -41,7 +52,38 @@ You can also ask `lovelaice` to do something in your terminal:
 
     You have approximately 5.5 Gigabytes of free space left on your filesystem.
 
-And if you ask it something math-related it can run Python for you:
+### Codegen
+
+You can ask a general question about programming:
+
+    $ lovelaice how to make an async iterator in python
+    :: Using Codegen
+
+    In Python, you can create an asynchronous iterator using the `async for` statement and the `async def` syntax. Asynchronous iterators are useful when you want to iterate over a sequence of asynchronous tasks, such as fetching data from a web service.
+
+    Here's a general explanation of how to create an asynchronous iterator in Python:
+
+    1. Define an asynchronous generator function using the `async def` syntax.
+    2. Inside the function, use the `async for` statement to iterate over the asynchronous tasks.
+    3. Use the `yield` keyword to return each item from the generator function.
+
+    Here's an example of an asynchronous iterator that generates a sequence of integers:
+
+    ```python
+    async def async_integer_generator():
+        i = 0
+        while True:
+            yield i
+            i += 1
+            await asyncio.sleep(0.1)
+    ```
+    [...]
+
+    Overall, creating an asynchronous iterator in Python is a powerful way to iterate over a sequence of asynchronous tasks. By using the `async def` syntax, the `async for` statement, and the `yield` keyword, you can create an efficient and flexible iterator that can handle a wide range of use cases.
+
+### Interpreter
+
+And if you ask it something math-related it can generate and run Python for you:
 
     $ lovelaice throw three d20 dices and return the middle value
     :: Using Python
@@ -62,9 +104,6 @@ And if you ask it something math-related it can run Python for you:
 > **NOTE**: Lovelaice will *always* require you to explicitly agree to run any code.
 Make sure that you understand what the code will do, otherwise there is no guarantee
 your computer won't suddenly grow a hand and slap you in the face, like, literally.
-
-You can also use Lovelaice in interactive mode just by typing `lovelaice` without a query.
-It will launch a conversation loop that you can close at any time with Ctrl+C.
 
 ## Features
 
@@ -87,6 +126,7 @@ Here are some features under active development:
 - Search in Google, crawl webpages, and answer questions using that content.
 - Read files and answer questions about their content.
 - Create and modify notes, emails, calendar entries, etc.
+- VSCode extension (!)
 
 ## Contributing
 

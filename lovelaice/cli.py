@@ -3,7 +3,7 @@ import asyncio
 import argparse
 from .core import Agent
 from .connectors import MistralLLM
-from .tools import Bash, Chat, Interpreter
+from .tools import Bash, Chat, Codegen, Interpreter
 
 
 def run():
@@ -16,7 +16,9 @@ def run():
     parser.add_argument("query", nargs="*", default=None)
 
     args = parser.parse_args()
-    agent = Agent(MistralLLM("mistral-small"), tools=[Bash(), Chat(), Interpreter()])
+    agent = Agent(
+        MistralLLM("mistral-small"), tools=[Bash(), Chat(), Interpreter(), Codegen()]
+    )
 
     if args.query:
         asyncio.run(run_once(args, agent))

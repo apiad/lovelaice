@@ -5,6 +5,7 @@ import vscode as vs
 from lovelaice.core import Agent
 from lovelaice.connectors import MistralLLM
 from lovelaice.tools import Chat
+import logging
 
 
 ext = vs.Extension(
@@ -33,7 +34,7 @@ async def lovelaice(ctx: vs.Context):
 
     response = []
 
-    for r in agent.query(res):
+    async for r in agent.query(res):
         response.append(r)
 
     response = "".join(r)
