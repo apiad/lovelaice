@@ -1,9 +1,6 @@
-import subprocess
-import abc
-import importlib
-from mistralai.client import MistralClient
-from mistralai.models.chat_completion import ChatMessage
-from functools import wraps
+from .connectors import LLM
+from .models import Message
+from .tools import Chat, Tool
 
 
 SYSTEM_PROMPT = """
@@ -29,230 +26,62 @@ Tool:
 """
 
 
-class Tool:
-    skip_use = False
+class Agent:
+    def __init__(self, client: LLM, tools: list[Tool]) -> None:
+        self.client = client
+        self.tools = tools
+        self.tools_dir = {t.name: t for t in tools}
+        self.tools_line = "\n".join(t.describe() for t in tools)
 
-    @property
-    def name(self) -> str:
-        return self.__class__.__name__
-
-    @property
-    def description(self) -> str:
-        return self.__class__.__doc__
-
-    def describe(self) -> str:
-        return f"- {self.name}: {self.description}."
-
-    def prompt(self, query) -> str:
-        return query
-
-    def use(self, query, response):
-        pass
-
-    def conclude(self, query, output):
-        pass
-
-
-class Bash(Tool):
-    """
-    When the user requests some action in the filesystem or terminal,
-    including git commands, or installing new applications or packages.
-    """
-
-    def prompt(self, query) -> str:
-        return f"""
-Given the following user query, generate a single bash command line
-that performs the indicated functionality.
-
-Reply only with the corresponding bash line.
-Do not add any explanation.
-
-Query: {query}
-Command:
-"""
-
-    def use(self, query, response):
-        response = response.strip("`")
-
-        if response.startswith("bash"):
-            response = response[4:]
-
-        response = response.split("`")[0]
-        response = [s.strip() for s in response.split("\n")]
-        response = [s for s in response if s]
-
-        response = ";".join(s for s in response)
-
-        yield "Running the following code:\n"
-        yield "$ "
-        yield response
-        yes = input("\n[y]es / [N]o ")
-
-        if yes != "y":
-            yield "(!) Operation cancelled by your request.\n"
-            return
-
-        yield "\n"
-
-        p = subprocess.run(response, shell=True, stdout=subprocess.PIPE)
-        yield p.stdout.decode('utf8')
-
-    def conclude(self, query, output):
-        return f"""
-The user issued the following query:
-
-Query: {query}
-
-Given that query, you ran the following command which
-Add license information here.
-produced the given output:
-
----
-{output}
----
-
-If the user query is a question, answer it as succintly
-as possible given the output.
-
-If the user query was a request to do something,
-explain briefly the result of the operation.
-"""
-
-
-class Chat(Tool):
-    """
-    When the user engages in general-purpose or casual conversation.
-    """
-
-    def __init__(self) -> None:
-        self.skip_use = True
-
-
-class Python(Tool):
-    """
-    When the user requests something that can be answered by
-    running Python code, e.g., evaluating a complicated formula,
-    making datetime arithmetics, generating random numbers, etc.
-    """
-
-    def prompt(self, query) -> str:
-        return f"""
-Given the following user query,
-generate a single Python function named `solve`
-and the necessary import statements
-to perform the indicated functionality.
-
-If you need secondary functions, name them starting with `_`.
-
-Enclose the code in ```python and ```
-
-Reply only with the corresponding Python code.
-Do not add any explanation.
-Do not execute the function.
-Do not add any print statements.
-
-Query: {query}
-Function definition:
-"""
-
-    def use(self, query, response):
-        code = []
-        imports = []
-        inside = False
-
-        for line in response.split("\n"):
-            if line.startswith("```python"):
-                inside = True
-            elif line.startswith("```"):
-                inside = False
-            elif inside:
-                if line.startswith("import"):
-                    imports.append(line.split()[1])
-                else:
-                    code.append(line)
-
-        code.append("\nresult = solve()")
-        code = "\n".join(code).strip()
-
-        yield "Will run the following code:\n\n"
-        yield code
-        yes = input("\n\n[y]es / [N]o ")
-
-        if yes != "y":
-            yield "(!) Operation cancelled by your request.\n"
-            return
-
-        globals = {module: importlib.import_module(module) for module in imports}
-        locals = {}
-        exec(code, globals, locals)
-        result = locals['result']
-
-        yield f"\nResult: {result}"
-
-
-TOOLS = [Bash(), Chat(), Python()]
-TOOLS_DIR = {t.name: t for t in TOOLS}
-TOOLS_LINE = "\n".join(t.describe() for t in TOOLS)
-
-
-class Question:
-    def __init__(self, q:str) -> None:
-        self.q = q
-
-
-def query(
-    prompt: str,
-    client: MistralClient,
-    model: str = "mistral-small",
-    system_prompt=SYSTEM_PROMPT,
-    use_tool=None,
-):
-    if use_tool is None:
-        messages = [
-            ChatMessage(role="system", content=system_prompt),
-            ChatMessage(role="user", content=TOOLS_PROMPT.format(query=prompt, tools=TOOLS_LINE))
-        ]
-
-        tool_name = client.chat(model, messages).choices[0].message.content
-        tool_name = tool_name.split()[0].strip(",.:")
-
-        yield from query(prompt, client, model, system_prompt, use_tool=tool_name)
-
-    else:
-        tool: Tool = TOOLS_DIR[use_tool]
-
-        if tool.name != "Chat":
-            yield f":: Using {tool.name}\n\n"
-
-        messages = [
-            ChatMessage(role="system", content=system_prompt),
-            ChatMessage(role="user", content=tool.prompt(prompt))
-        ]
-
-        if tool.skip_use:
-            for response in client.chat_stream(model, messages):
-                yield response.choices[0].delta.content
-
-        else:
-            response = client.chat(model, messages).choices[0].message.content
-            output = []
-
-            for line in tool.use(prompt, response):
-                output.append(line)
-                yield line
-
-            output = "\n".join(output)
-            conclusion = tool.conclude(prompt, output)
-
-            if conclusion is None:
-                return
-
+    def query(
+        self,
+        prompt: str,
+        use_tool=None,
+    ):
+        if use_tool is None:
             messages = [
-                ChatMessage(role="system", content=system_prompt),
-                ChatMessage(role="user", content=conclusion)
+                Message(role="system", content=SYSTEM_PROMPT),
+                Message(
+                    role="user",
+                    content=TOOLS_PROMPT.format(query=prompt, tools=self.tools_line),
+                ),
             ]
 
-            yield "\n"
+            tool_name = self.client.query_sync(messages)
+            tool_name = tool_name.split()[0].strip(",.:")
 
-            for response in client.chat_stream(model, messages):
-                yield response.choices[0].delta.content
+            yield from self.query(prompt, use_tool=tool_name)
+
+        else:
+            if use_tool not in self.tools_dir:
+                tool: Tool = Chat()
+            else:
+                tool: Tool = self.tools_dir[use_tool]
+
+            if tool.name != "Chat":
+                yield f":: Using {tool.name}\n\n"
+
+            messages = [Message(role="user", content=tool.prompt(prompt))]
+
+            if tool.skip_use:
+                yield from self.client.query(messages)
+
+            else:
+                response = self.client.query_sync(messages)
+                output = []
+
+                for line in tool.use(prompt, response):
+                    output.append(line)
+                    yield line
+
+                output = "\n".join(output)
+                conclusion = tool.conclude(prompt, output)
+
+                if conclusion is None:
+                    return
+
+                messages = [Message(role="user", content=conclusion)]
+
+                yield "\n"
+
+                yield from self.client.query(messages)

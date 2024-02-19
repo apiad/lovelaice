@@ -1,0 +1,30 @@
+{
+  "name": "lovelaice",
+  "displayName": "Lovelaice",
+  "main": "./extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "lovelaice.Lovelaice",
+        "title": "Lovelaice"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "lovelaice.Lovelaice",
+        "key": "CTRL+SHIFT+L"
+      }
+    ]
+  },
+  "activationEvents": [
+    "onCommand:lovelaice.Lovelaice"
+  ],
+  "dependencies": {
+    "ws": "^8.4.0"
+  },
+  "version": "0.1.7",
+  "engines": {
+    "vscode": "^1.58.0"
+  },
+  "publisher": "apiad"
+}
