@@ -101,17 +101,21 @@ Command:
 
     def conclude(self, query, output):
         return f"""
-The following is an excerpt of the output from a bash session:
+The user issued the following query:
+
+Query: {query}
+
+Given that query, you ran the following command which
+Add license information here.
+produced the given output:
 
 ---
 {output}
 ---
 
-Given the previous output, answer the following user query
-as succintly as possible.
+Explain the result of the command very briefly.
 
-Query: {query}
-Answer:
+Explanation:
 """
 
 
