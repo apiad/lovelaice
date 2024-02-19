@@ -53,6 +53,9 @@ Here is a list of things you can try:
 - Order Lovelaice to set settings, turn off the wifi, restart the computer, etc.
 - Order Lovelaice to stage, commit, push, show diffs, etc.
 
+In general, you can attempt to ask Lovelaice to do just about anything
+that requires bash, and it will try its best. Your imagination is the only limit.
+
 Here are some features under active development:
 
 - Generate and run Python code.
