@@ -5,19 +5,29 @@
   "contributes": {
     "commands": [
       {
-        "command": "lovelaice.Lovelaice",
-        "title": "Lovelaice"
+        "command": "lovelaice.Lovelaice: General Query",
+        "title": "Lovelaice: General Query"
       }
     ],
     "keybindings": [
       {
-        "command": "lovelaice.Lovelaice",
+        "command": "lovelaice.Lovelaice: General Query",
         "key": "CTRL+SHIFT+L"
       }
-    ]
+    ],
+    "configuration": {
+      "title": "Lovelaice",
+      "properties": {
+        "lovelaice.mistral-api-key": {
+          "description": "An API key for Mistral.ai",
+          "type": "string",
+          "default": null
+        }
+      }
+    }
   },
   "activationEvents": [
-    "onCommand:lovelaice.Lovelaice"
+    "onCommand:lovelaice.Lovelaice: General Query"
   ],
   "dependencies": {
     "ws": "^8.4.0"

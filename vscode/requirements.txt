@@ -1,2 +1,2 @@
-lovelaice==0.1.8
+lovelaice==0.1.9
 vscode.py

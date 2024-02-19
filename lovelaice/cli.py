@@ -1,4 +1,5 @@
 import dotenv
+import asyncio
 import argparse
 from .core import Agent
 from .connectors import MistralLLM
@@ -18,27 +19,27 @@ def run():
     agent = Agent(MistralLLM("mistral-small"), tools=[Bash(), Chat(), Interpreter()])
 
     if args.query:
-        run_once(args, agent)
+        asyncio.run(run_once(args, agent))
     else:
-        run_forever(args, agent)
+        asyncio.run(run_forever(args, agent))
 
 
-def run_once(args, agent):
+async def run_once(args, agent: Agent):
     prompt = " ".join(args.query)
 
-    for response in agent.query(prompt):
+    async for response in agent.query(prompt):
         print(response, end="", flush=True)
 
     print()
 
 
-def run_forever(args, agent):
+async def run_forever(args, agent: Agent):
     while True:
         try:
             prompt = input("> ")
 
             try:
-                for response in agent.query(prompt):
+                async for response in agent.query(prompt):
                     print(response, end="", flush=True)
             except KeyboardInterrupt:
                 print("(!) Cancelled")

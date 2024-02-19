@@ -33,7 +33,7 @@ class Agent:
         self.tools_dir = {t.name: t for t in tools}
         self.tools_line = "\n".join(t.describe() for t in tools)
 
-    def query(
+    async def query(
         self,
         prompt: str,
         use_tool=None,
@@ -47,10 +47,11 @@ class Agent:
                 ),
             ]
 
-            tool_name = self.client.query_sync(messages)
+            tool_name = await self.client.query_all(messages)
             tool_name = tool_name.split()[0].strip(",.:")
 
-            yield from self.query(prompt, use_tool=tool_name)
+            async for response in self.query(prompt, use_tool=tool_name):
+                yield response
 
         else:
             if use_tool not in self.tools_dir:
@@ -64,10 +65,11 @@ class Agent:
             messages = [Message(role="user", content=tool.prompt(prompt))]
 
             if tool.skip_use:
-                yield from self.client.query(messages)
+                async for response in self.client.query(messages):
+                    yield response
 
             else:
-                response = self.client.query_sync(messages)
+                response = await self.client.query_all(messages)
                 output = []
 
                 for line in tool.use(prompt, response):
@@ -84,4 +86,5 @@ class Agent:
 
                 yield "\n"
 
-                yield from self.client.query(messages)
+                async for response in self.client.query(messages):
+                    yield response

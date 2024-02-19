@@ -21,8 +21,8 @@ function commandCallback(command) {
 function registerCommands(context) {
 	
   context.subscriptions.push(
-    vscode.commands.registerCommand("lovelaice.Lovelaice", () =>
-        commandCallback("Lovelaice")
+    vscode.commands.registerCommand("lovelaice.Lovelaice: General Query", () =>
+        commandCallback("Lovelaice: General Query")
     )
   );
 
