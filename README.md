@@ -86,7 +86,7 @@ You can ask a general question about programming:
 And if you ask it something math-related it can generate and run Python for you:
 
     $ lovelaice throw three d20 dices and return the middle value
-    :: Using Python
+    :: Using Interpreter
 
     Will run the following code:
 
