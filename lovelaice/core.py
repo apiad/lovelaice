@@ -201,15 +201,3 @@ def query(
 
             for response in client.chat_stream(model, messages):
                 yield response.choices[0].delta.content
-
-
-
-def prompt(function):
-    client = MistralClient()
-
-    @wraps(function)
-    def wrapper(*args, **kwargs):
-        template: str = function(*args, **kwargs)
-        return query(template, client)
-
-    return wrapper
