@@ -20,8 +20,8 @@ try:
 
 
     class MistralLLM(LLM):
-        def __init__(self, model:str) -> None:
-            self.client = MistralClient(api_key=os.getenv("MISTRAL_API_KEY"))
+        def __init__(self, model:str, api_key:str=None) -> None:
+            self.client = MistralClient(api_key=api_key or os.getenv("MISTRAL_API_KEY"))
             self.model = model
 
         def query(self, messages: list[Message]):
