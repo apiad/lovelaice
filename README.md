@@ -63,6 +63,9 @@ And if you ask it something math-related it can run Python for you:
 Make sure that you understand what the code will do, otherwise there is no guarantee
 your computer won't suddenly grow a hand and slap you in the face, like, literally.
 
+You can also use Lovelaice in interactive mode just by typing `lovelaice` without a query.
+It will launch a conversation loop that you can close at any time with Ctrl+C.
+
 ## Features
 
 So far Lovelaice has both general-purpose chat capabilites, and access to bash.

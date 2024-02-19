@@ -3,7 +3,7 @@ import lovelaice
 
 
 ext = vs.Extension(
-    name="Lovelaice", metadata=vs.ExtensionMetadata(version="0.1.7", publisher="apiad")
+    name="Lovelaice", metadata=vs.ExtensionMetadata(version="0.1.8", publisher="apiad")
 )
 
 
