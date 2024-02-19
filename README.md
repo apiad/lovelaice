@@ -21,7 +21,10 @@ You can use `lovelaice` from the command line to ask something causal like:
 
     $ lovelaice what is the meaning of life
 
-    The meaning of life is a philosophical and metaphysical question related to the significance of living or existence in general. Many different people, cultures, and religions have different beliefs about the purpose and meaning of life.
+    The meaning of life is a philosophical and metaphysical question
+    related to the significance of living or existence in general.
+    Many different people, cultures, and religions have different
+    beliefs about the purpose and meaning of life.
 
     [...]
 
