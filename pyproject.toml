@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "lovelaice"
-version = "0.2.0"
+version = "0.2.1"
 description = "An AI-powered chatbot for the terminal and editor"
 authors = ["Alejandro Piad-Morffis <apiad@apiad.net>"]
 license = "MIT"
