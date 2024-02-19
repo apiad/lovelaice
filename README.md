@@ -41,6 +41,24 @@ You can also ask `lovelaice` to do something in your terminal:
 
     You have approximately 5.5 Gigabytes of free space left on your filesystem.
 
+And if you ask it something math-related it can run Python for you:
+
+    $ lovelaice throw three d20 dices and return the middle value
+    :: Using Python
+
+    Will run the following code:
+
+    def solve():
+        values = [random.randint(1, 20) for _ in range(3)]
+        values.sort()
+        return values[1]
+
+    result = solve()
+
+    [y]es / [N]o y
+
+    Result: 14
+
 > **NOTE**: Lovelaice will *always* require you to explicitly agree to run any code.
 Make sure that you understand what the code will do, otherwise there is no guarantee
 your computer won't suddenly grow a hand and slap you in the face, like, literally.
@@ -55,6 +73,7 @@ Here is a list of things you can try:
 - Order Lovelaice to create folders, install packages, update apps, etc.
 - Order Lovelaice to set settings, turn off the wifi, restart the computer, etc.
 - Order Lovelaice to stage, commit, push, show diffs, etc.
+- Ask Lovelaice to solve some math equation, generate random numbers, etc.
 
 In general, you can attempt to ask Lovelaice to do just about anything
 that requires bash, and it will try its best. Your imagination is the only limit.

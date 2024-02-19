@@ -1,5 +1,6 @@
 import subprocess
 import abc
+import importlib
 from mistralai.client import MistralClient
 from mistralai.models.chat_completion import ChatMessage
 from functools import wraps
@@ -28,7 +29,7 @@ Tool:
 """
 
 
-class Tool(abc.ABC):
+class Tool:
     skip_use = False
 
     @property
@@ -42,15 +43,12 @@ class Tool(abc.ABC):
     def describe(self) -> str:
         return f"- {self.name}: {self.description}."
 
-    @abc.abstractmethod
     def prompt(self, query) -> str:
-        pass
+        return query
 
-    @abc.abstractmethod
     def use(self, query, response):
         pass
 
-    @abc.abstractmethod
     def conclude(self, query, output):
         pass
 
@@ -129,17 +127,70 @@ class Chat(Tool):
     def __init__(self) -> None:
         self.skip_use = True
 
+
+class Python(Tool):
+    """
+    When the user requests something that can be answered by
+    running Python code, e.g., evaluating a complicated formula,
+    making datetime arithmetics, generating random numbers, etc.
+    """
+
     def prompt(self, query) -> str:
-        return query
+        return f"""
+Given the following user query,
+generate a single Python function named `solve`
+and the necessary import statements
+to perform the indicated functionality.
+
+If you need secondary functions, name them starting with `_`.
+
+Enclose the code in ```python and ```
+
+Reply only with the corresponding Python code.
+Do not add any explanation.
+Do not execute the function.
+Do not add any print statements.
+
+Query: {query}
+Function definition:
+"""
 
     def use(self, query, response):
-        raise NotImplementedError()
+        code = []
+        imports = []
+        inside = False
 
-    def conclude(self, query, response):
-        raise NotImplementedError()
+        for line in response.split("\n"):
+            if line.startswith("```python"):
+                inside = True
+            elif line.startswith("```"):
+                inside = False
+            elif inside:
+                if line.startswith("import"):
+                    imports.append(line.split()[1])
+                else:
+                    code.append(line)
+
+        code.append("\nresult = solve()")
+        code = "\n".join(code).strip()
+
+        yield "Will run the following code:\n\n"
+        yield code
+        yes = input("\n\n[y]es / [N]o ")
+
+        if yes != "y":
+            yield "(!) Operation cancelled by your request.\n"
+            return
+
+        globals = {module: importlib.import_module(module) for module in imports}
+        locals = {}
+        exec(code, globals, locals)
+        result = locals['result']
+
+        yield f"\nResult: {result}"
 
 
-TOOLS = [Bash(), Chat()]
+TOOLS = [Bash(), Chat(), Python()]
 TOOLS_DIR = {t.name: t for t in TOOLS}
 TOOLS_LINE = "\n".join(t.describe() for t in TOOLS)
 
@@ -191,10 +242,14 @@ def query(
                 yield line
 
             output = "\n".join(output)
+            conclusion = tool.conclude(prompt, output)
+
+            if conclusion is None:
+                return
 
             messages = [
                 ChatMessage(role="system", content=system_prompt),
-                ChatMessage(role="user", content=tool.conclude(prompt, output))
+                ChatMessage(role="user", content=conclusion)
             ]
 
             yield "\n"
