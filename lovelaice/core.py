@@ -113,9 +113,11 @@ produced the given output:
 {output}
 ---
 
-Explain the result of the command very briefly.
+If the user query is a question, answer it as succintly
+as possible given the output.
 
-Explanation:
+If the user query was a request to do something,
+explain briefly the result of the operation.
 """
 
 
