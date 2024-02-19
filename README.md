@@ -1,53 +1,82 @@
-# Lovelaice - An AI-powered writing assistant for VSCode
+# Lovelaice: An AI-powered assistant for your terminal and editor
 
-Lovelaice is a writing assistant for VSCode. It is implemented as a Python Language Server that works on Markdown files.
-It contains commands and tools to generate, format, revise, and change prose, using the OpenAI API and several of its models.
+Lovelaice is an LLM-powered bot that sits in your terminal.
+It has access to your files and it can run bash commands for you.
+It can also access the Internet and search for answers to general
+questions, as well as technical ones.
 
-Lovelaice is a text editing platform that seeks to provide users with a range of features to enhance their writing. It utilizes OpenAI's models to provide auto-completion, text formatting, and revision suggestions. This means that users can take advantage of the models' predictive capabilities to save time and energy on mundane tasks. Additionally, Lovelaice will provide tools to generate summaries, headlines, and titles. These tools use AI to quickly generate content that is tailored to the user's needs. Finally, Lovelaice provides feedback on sentence structure to ensure that users can write in an effective and organized manner. This feedback is based on the models' understanding of grammar and syntax, ensuring accuracy and consistency. In short, Lovelaice provides a comprehensive suite of features that can help users write better and faster.
+## Installation
 
-In addition to its writing assistance capabilities, Lovelaice will also offer AI-assisted text analytics. This allows users to gain insight into the sentiment, topics, and key phrases in the text they are writing. The AI-powered text analytics feature can also generate summaries of the text, helping the user to understand the key points of the text and quickly identify any areas that need further development or refinement. The text analytics feature can help users better understand their own work, as well as quickly and accurately understand the work of others when reading and reviewing documents.
+Install with pip:
 
-> ⚠️ **NOTE**: You will need to have an OpenAI account and setup your token for this extension to work. Using this extension will count towards your OpenAI credits.
+    pip install lovelaice
+
+## Ussage
+
+Before using Lovelaice, you will need an API key for [Mistral](https://mistral.ai).
+
+    export MISTRAL_API_KEY="..."
+
+You can use `lovelaice` from the command line to ask something causal like:
+
+    $ lovelaice what is the meaning of life
+
+    The meaning of life is a philosophical and metaphysical question related to the significance of living or existence in general. Many different people, cultures, and religions have different beliefs about the purpose and meaning of life.
+
+    [...]
+
+You can also ask `lovelaice` to do something in your terminal:
+
+    $ lovelaice how much free space do i have
+    :: Using Bash
+
+    Running the following code:
+    $ df -h | grep '/$' | awk '{ print $4 }'
+    [y]es / [N]o y
+
+    5,5G
+
+    You have approximately 5.5 Gigabytes of free space left on your filesystem.
+
+> **NOTE**: Lovelaice will *always* require you to explicitly agree to run any code.
+Make sure that you understand what the code will do, otherwise there is no guarantee
+your computer won't suddenly grow a hand and slap you in the face, like, literally.
 
 ## Features
 
-This is a non-exhaustive list of features/commands that are implemented or planned.
+So far Lovelaice has both general-purpose chat capabilites, and access to bash.
+Here is a list of things you can try:
 
-- [x] Fix grammar and spelling
-- [x] Arbitrary text completion
-- [x] Summarize large chunks of text
-- [x] Expand fragments of text
-- [x] Brainstorm ideas based on a fragment of text
-- [x] Explain a short phrase in context
-- [x] Evaluate the tone, difficulty, audience, and sentiment of text
-- [ ] Change the tone, difficulty, audience, and sentiment of text
-- [ ] Generate headings and titles
+- Chat with Lovelaice about casual stuff
+- Ask Lovelaice questions about your system, distribution, free space, etc.
+- Order Lovelaice to create folders, install packages, update apps, etc.
+- Order Lovelaice to set settings, turn off the wifi, restart the computer, etc.
 
-## Usage
+Here are some features under active development:
 
-This project is in an alpha development stage, and as such it is not directly installable as an extension. To take it for a spin, you have to clone the project and setup a development environment.
+- Generate and run Python code.
+- Search in Google, crawl webpages, and answer questions using that content.
+- Read files and answer questions about their content.
+- Create and modify notes, emails, calendar entries, etc.
 
-### Install Server and Client Dependencies
+## Contributing
 
-This project uses Poetry and Node/NPM, so make sure to have those installed.
+Code is MIT. Just fork, clone, edit, and open a PR.
 
-1. `poetry install`
-2. `npm install`
-3. `cd client/ && npm install`
-4. Create `.env` and add your OpenAI token as `OPENAI_KEY`.
+## FAQ
 
-### Run the extension in debug mode
+**What models do you use?**
 
-1. Open this directory in VS Code
-2. Open debug view (`ctrl + shift + D`)
-3. Select `Server + Client` and press `F5`
+Currently, only [Mistral](https://mistral.ai) models are integrated,
+but you are welcome to submit PRs
+to add other LLM providers, such as OpenAI.
 
-This will open a new VSCode window with the extension activated.
+**Is this safe?**
 
-### Use it
+Lovelaice will never run code without your explicit consent.
+That being said, LLMs are known for making subtle mistakes, so never
+trust that the code does what Lovelaice says it do. Always read
+the code and make sure you understand what it does.
 
-Now open a Markdown document and start writing. Select a chunk of text, and hit `Ctrl+.` to open the Code Action popup menu and select a magic command.
-
-## Contribution
-
-Code is MIT, so you know the drill. Fork, test, PR, rinse and repeat.
+When in doubt, adopt the same stance as if you were copy/pasting code from
+a random blog somehwere in the web (because that is exactly what you're doing).
