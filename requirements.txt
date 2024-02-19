@@ -1,5 +1,0 @@
-python-dotenv
-pytest
-fire
-mistralai
-pydantic

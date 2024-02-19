@@ -7,10 +7,12 @@ from functools import wraps
 
 SYSTEM_PROMPT = """
 You are Lovelaice, a helpful AI agent that runs in the
-terminal. You can do many things, from general-purpose chat
-to helping with concrete tasks that require access to the filesystem.
+user terminal. You can do many things, from casual chat
+to helping with concrete tasks that require access to the user filesystem.
 You can run programs at the request of the user, and write
 code for them.
+You have access to the Internet and can answer queries that
+require searching online.
 """
 
 TOOLS_PROMPT = """
@@ -29,13 +31,13 @@ Tool:
 class Tool(abc.ABC):
     skip_use = False
 
-    @abc.abstractproperty
+    @property
     def name(self) -> str:
-        pass
+        return self.__class__.__name__
 
-    @abc.abstractproperty
+    @property
     def description(self) -> str:
-        pass
+        return self.__class__.__doc__
 
     def describe(self) -> str:
         return f"- {self.name}: {self.description}."
@@ -54,33 +56,30 @@ class Tool(abc.ABC):
 
 
 class Bash(Tool):
-    @property
-    def name(self):
-        return "bash"
-
-    @property
-    def description(self):
-        return "when the user requests some action in the filesystem or terminal, including git commands"
+    """
+    When the user requests some action in the filesystem or terminal,
+    including git commands, or installing new applications or packages.
+    """
 
     def prompt(self, query) -> str:
         return f"""
-Given the following user query, generate a bash command line
+Given the following user query, generate a single bash command line
 that performs the indicated functionality.
 
 Reply only with the corresponding bash line.
 Do not add any explanation.
 
 Query: {query}
-Bash line:
+Command:
 """
 
     def use(self, query, response):
-        if response.startswith("```bash"):
-            response = response[7:-3]
+        response = response.strip("`")
 
-        elif response[0] == '`':
-            response = response[1:-1]
+        if response.startswith("bash"):
+            response = response[4:]
 
+        response = response.split("`")[0]
         response = [s.strip() for s in response.split("\n")]
         response = [s for s in response if s]
 
@@ -89,7 +88,13 @@ Bash line:
         yield "Running the following code:\n"
         yield "$ "
         yield response
-        yield "\n\n"
+        yes = input("\n[y]es / [N]o ")
+
+        if yes != "y":
+            yield "(!) Operation cancelled by your request.\n"
+            return
+
+        yield "\n"
 
         p = subprocess.run(response, shell=True, stdout=subprocess.PIPE)
         yield p.stdout.decode('utf8')
@@ -111,16 +116,12 @@ Answer:
 
 
 class Chat(Tool):
+    """
+    When the user engages in general-purpose or casual conversation.
+    """
+
     def __init__(self) -> None:
         self.skip_use = True
-
-    @property
-    def name(self):
-        return "chat"
-
-    @property
-    def description(self):
-        return "when the user engages in general-purpose or casual conversation"
 
     def prompt(self, query) -> str:
         return query
@@ -156,14 +157,14 @@ def query(
         ]
 
         tool_name = client.chat(model, messages).choices[0].message.content
-        tool_name = tool_name.split()[0]
+        tool_name = tool_name.split()[0].strip(",.:")
 
         yield from query(prompt, client, model, system_prompt, use_tool=tool_name)
 
     else:
         tool: Tool = TOOLS_DIR[use_tool]
 
-        if tool.name != "chat":
+        if tool.name != "Chat":
             yield f":: Using {tool.name}\n\n"
 
         messages = [
