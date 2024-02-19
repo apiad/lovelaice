@@ -51,6 +51,7 @@ Here is a list of things you can try:
 - Ask Lovelaice questions about your system, distribution, free space, etc.
 - Order Lovelaice to create folders, install packages, update apps, etc.
 - Order Lovelaice to set settings, turn off the wifi, restart the computer, etc.
+- Order Lovelaice to stage, commit, push, show diffs, etc.
 
 Here are some features under active development:
 
