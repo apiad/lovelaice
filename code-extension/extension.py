@@ -5,7 +5,6 @@ import vscode as vs
 from lovelaice.core import Agent
 from lovelaice.connectors import MistralLLM
 from lovelaice.tools import Chat
-import logging
 
 
 ext = vs.Extension(
