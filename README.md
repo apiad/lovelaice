@@ -11,18 +11,26 @@ Install with pip:
 
     pip install lovelaice
 
-## Ussage
+## Usage
 
-Before using Lovelaice, you will need an API key for [Mistral](https://mistral.ai).
+Before using Lovelaice, you will need an API key for OpenAI:
 
-    export MISTRAL_API_KEY="..."
+    export LOVELAICE_API_KEY="..."
+
+> You can also define a default model with `LOVELAICE_MODEL` and
+> a custom base URL (if you are using an alternative, OpenAI-compatible
+> provider such as <fireworks.ai> or <mistral.ai>, or a local LLM server
+> such as LMStudio or vLLM) with `LOVELAICE_BASE_URL`.
+>
+> You can also pass `--model`, `--api-key`, and `--base-url` when calling
+> `lovelaice` if you want to define these in a per-call basis.
 
 You can use `lovelaice` from the command line to ask anything.
 Lovelaice understands many different types of requests, and will
 employ different tools according to the question.
 
 You can also use Lovelaice in interactive mode just by typing `lovelaice` without a query.
-It will launch a conversation loop that you can close at any time with Ctrl+C.
+It will launch a conversation loop that you can close at any time with Ctrl+D.
 
 ### Chat
 
