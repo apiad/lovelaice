@@ -37,6 +37,7 @@ class Agent:
         self,
         prompt: str,
         use_tool=None,
+        **kwargs,
     ):
         if use_tool is None:
             messages = [
@@ -47,10 +48,10 @@ class Agent:
                 ),
             ]
 
-            tool_name = await self.client.chat(messages)
+            tool_name = await self.client.chat(messages, **kwargs)
             tool_name = tool_name.split()[0].strip(",.:")
 
-            async for response in self.query(prompt, use_tool=tool_name):
+            async for response in self.query(prompt, use_tool=tool_name, **kwargs):
                 yield response
 
         else:
@@ -65,11 +66,11 @@ class Agent:
             messages = [Message(role="user", content=tool.prompt(prompt))]
 
             if tool.skip_use:
-                async for response in self.client.chat_stream(messages):
+                async for response in self.client.chat_stream(messages, **kwargs):
                     yield response
 
             else:
-                response = await self.client.chat(messages)
+                response = await self.client.chat(messages, **kwargs)
                 output = []
 
                 for line in tool.use(prompt, response):
@@ -86,5 +87,5 @@ class Agent:
 
                 yield "\n"
 
-                async for response in self.client.chat_stream(messages):
+                async for response in self.client.chat_stream(messages, **kwargs):
                     yield response
