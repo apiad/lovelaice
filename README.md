@@ -144,14 +144,23 @@ Here are some features under active development:
 ## Contributing
 
 Code is MIT. Just fork, clone, edit, and open a PR.
+All suggestions, bug reports, and contributions are welcome.
 
 ## FAQ
 
 **What models do you use?**
 
-Currently, only [Mistral](https://mistral.ai) models are integrated,
-but you are welcome to submit PRs
-to add other LLM providers, such as OpenAI.
+Currently, all OpenAI-compatible APIs are supported, which
+should cover most use cases, including major commercial LLM providers
+as well as local serves.
+
+If you want to use a custom API that is not OpenAI-compatible,
+you can easily setup a proxy with [LiteLLM](https://litellm.ai).
+
+I do not have specific plans to add any other API, because maintaining
+different APIs could become hell,
+but you are free to submit a PR for your favorite API and
+it might get included.
 
 **Is this safe?**
 
