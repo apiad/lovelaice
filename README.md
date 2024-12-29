@@ -1,5 +1,10 @@
 # Lovelaice: An AI-powered assistant for your terminal and editor
 
+![PyPI - Version](https://img.shields.io/pypi/v/lovelaice)
+![GitHub License](https://img.shields.io/github/license/apiad/lovelaice)
+![PyPI - Downloads](https://img.shields.io/pypi/dm/lovelaice)
+![GitHub commit activity](https://img.shields.io/github/commit-activity/m/apiad/lovelaice)
+
 Lovelaice is an LLM-powered bot that sits in your terminal.
 It has access to your files and it can run bash commands for you.
 It can also access the Internet and search for answers to general
