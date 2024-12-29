@@ -1,11 +1,17 @@
 [project]
 name = "lovelaice"
 version = "0.3.0"
-description = "An AI-powered chatbot for the terminal and editor."
+description = "An AI-powered assistant for your terminal and editor."
 readme = "README.md"
 requires-python = ">=3.12"
-repository = "https://github.com/apiad/lovelaice"
 dependencies = [
     "openai>=1.58.1",
     "python-dotenv>=1.0.1",
 ]
+
+[project.scripts]
+lovelaice = "lovelaice:cli.run"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

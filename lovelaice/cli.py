@@ -64,9 +64,11 @@ async def run_forever(args, agent: Agent):
             try:
                 async for response in agent.query(prompt):
                     print(response, end="", flush=True)
-            except KeyboardInterrupt:
+            except asyncio.exceptions.CancelledError:
                 print("(!) Cancelled")
 
             print("\n")
         except KeyboardInterrupt:
+            break
+        except EOFError:
             break

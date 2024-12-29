@@ -135,7 +135,7 @@ wheels = [
 [[package]]
 name = "lovelaice"
 version = "0.3.0"
-source = { virtual = "." }
+source = { editable = "." }
 dependencies = [
     { name = "openai" },
     { name = "python-dotenv" },
