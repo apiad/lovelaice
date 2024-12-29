@@ -47,7 +47,7 @@ class Agent:
                 ),
             ]
 
-            tool_name = await self.client.query_all(messages)
+            tool_name = await self.client.chat(messages)
             tool_name = tool_name.split()[0].strip(",.:")
 
             async for response in self.query(prompt, use_tool=tool_name):
@@ -65,11 +65,11 @@ class Agent:
             messages = [Message(role="user", content=tool.prompt(prompt))]
 
             if tool.skip_use:
-                async for response in self.client.query(messages):
+                async for response in self.client.chat_stream(messages):
                     yield response
 
             else:
-                response = await self.client.query_all(messages)
+                response = await self.client.chat(messages)
                 output = []
 
                 for line in tool.use(prompt, response):
@@ -86,5 +86,5 @@ class Agent:
 
                 yield "\n"
 
-                async for response in self.client.query(messages):
+                async for response in self.client.chat_stream(messages):
                     yield response
