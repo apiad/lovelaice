@@ -1,5 +1,4 @@
 import os
-import asyncio
 import abc
 
 from .models import Message
@@ -20,20 +19,23 @@ class LLM(abc.ABC):
 
 
 try:
-    from mistralai.async_client import MistralAsyncClient
-    from mistralai.models.chat_completion import ChatMessage
+    from openai import AsyncOpenAI
+    from openai.types.chat import ChatCompletionChunk
 
-
-    class MistralLLM(LLM):
-        def __init__(self, model:str, api_key:str=None) -> None:
-            self.client = MistralAsyncClient(api_key=api_key or os.getenv("MISTRAL_API_KEY"))
+    class OpenAILLM(LLM):
+        def __init__(self, model: str, api_key: str, base_url: str = None) -> None:
+            self.client = AsyncOpenAI(api_key=api_key, base_url=base_url)
             self.model = model
 
         async def query(self, messages: list[Message]):
-            async for response in self.client.chat_stream(
-                self.model, [ChatMessage(role=m.role, content=m.content) for m in messages]
-            ):
-                yield response.choices[0].delta.content
+            stream = await self.client.chat.completions.create(
+                messages=[dict(role=m.role, content=m.content) for m in messages],
+                model=self.model,
+                stream=True,
+            )
+
+            async for response in stream:
+                yield response.choices[0].delta.content or ""
 
 except ImportError:
     pass

@@ -1,8 +1,9 @@
+import os
 import dotenv
 import asyncio
 import argparse
 from .core import Agent
-from .connectors import MistralLLM
+from .connectors import OpenAILLM
 from .tools import Bash, Chat, Codegen, Interpreter
 
 
@@ -13,11 +14,31 @@ def run():
     parser.add_argument(
         "-f", "--file", action="store", help="Add a file to the context"
     )
+    parser.add_argument(
+        "-m",
+        "--model",
+        action="store",
+        help="Model to use",
+        default=os.getenv("LOVELAICE_MODEL"),
+    )
+    parser.add_argument(
+        "--base-url",
+        action="store",
+        help="API base URL to use",
+        default=os.getenv("LOVELAICE_BASE_URL"),
+    )
+    parser.add_argument(
+        "--api-key",
+        action="store",
+        help="API key to use",
+        default=os.getenv("LOVELAICE_API_KEY"),
+    )
     parser.add_argument("query", nargs="*", default=None)
 
     args = parser.parse_args()
     agent = Agent(
-        MistralLLM("mistral-small"), tools=[Bash(), Chat(), Interpreter(), Codegen()]
+        OpenAILLM(args.model, args.api_key, args.base_url),
+        tools=[Bash(), Chat(), Interpreter(), Codegen()],
     )
 
     if args.query:

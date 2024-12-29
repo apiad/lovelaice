@@ -1,24 +1,11 @@
-[tool.poetry]
+[project]
 name = "lovelaice"
-version = "0.2.1"
-description = "An AI-powered chatbot for the terminal and editor"
-authors = ["Alejandro Piad-Morffis <apiad@apiad.net>"]
-license = "MIT"
+version = "0.3.0"
+description = "An AI-powered chatbot for the terminal and editor."
 readme = "README.md"
+requires-python = ">=3.12"
 repository = "https://github.com/apiad/lovelaice"
-
-[tool.poetry.dependencies]
-python = "^3.10"
-python-dotenv = "^1.0.1"
-mistralai = "^0.0.12"
-
-[tool.poetry.dev-dependencies]
-pytest = "^8.0.1"
-vscode-py = "^2.0.0b2"
-
-[build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
-
-[tool.poetry.scripts]
-lovelaice = "lovelaice.cli:run"
+dependencies = [
+    "openai>=1.58.1",
+    "python-dotenv>=1.0.1",
+]
