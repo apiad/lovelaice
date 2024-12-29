@@ -18,12 +18,13 @@ Install with pip:
 
 ## Usage
 
-Before using Lovelaice, you will need an API key for OpenAI:
+Before using Lovelaice, you will need an API key for OpenAI and a model:
 
     export LOVELAICE_API_KEY="..."
+    export LOVELAICE_MODEL="..."
 
-> You can also define a default model with `LOVELAICE_MODEL` and
-> a custom base URL (if you are using an alternative, OpenAI-compatible
+> You can also define a custom base URL
+> (if you are using an alternative, OpenAI-compatible
 > provider such as <fireworks.ai> or <mistral.ai>, or a local LLM server
 > such as LMStudio or vLLM) with `LOVELAICE_BASE_URL`.
 >
@@ -36,6 +37,16 @@ employ different tools according to the question.
 
 You can also use Lovelaice in interactive mode just by typing `lovelaice` without a query.
 It will launch a conversation loop that you can close at any time with Ctrl+D.
+
+### Basic completion
+
+You can use `lovelaice` a basic completion model, passing `--complete` or `-c` for short.
+
+    $ lovelaice -c Once upon a time, in a small village
+
+    Once upon a time, in a small village nestled in the rolling hills of Provence, there was a tiny, exquisite perfume shop. The sign above the door read "Maison de Rêve" – House of Dreams. The shop was owned by a kind-hearted and talented perfumer named Colette, who spent her days crafting enchanting fragrances that transported those who wore them to a world of beauty and wonder.
+
+    [...]
 
 ### Chat
 

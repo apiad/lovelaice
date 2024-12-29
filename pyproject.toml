@@ -1,6 +1,6 @@
 [project]
 name = "lovelaice"
-version = "0.3.0"
+version = "0.3.1"
 description = "An AI-powered assistant for your terminal and editor."
 readme = "README.md"
 requires-python = ">=3.12"
