@@ -86,7 +86,6 @@ The user issued the following query:
 Query: {query}
 
 Given that query, you ran the following command which
-Add license information here.
 produced the given output:
 
 ---
