@@ -16,20 +16,25 @@ Install with pip:
 
     pip install lovelaice
 
-## Usage
+## Configuring
 
-Before using Lovelaice, you will need an API key for OpenAI and a model:
+Before using Lovelaice, you will need an API key for OpenAI and a model.
+Run `lovelaice --config` to set up `lovelaice` for the first time.
 
     export LOVELAICE_API_KEY="..."
     export LOVELAICE_MODEL="..."
 
-> You can also define a custom base URL
-> (if you are using an alternative, OpenAI-compatible
-> provider such as <fireworks.ai> or <mistral.ai>, or a local LLM server
-> such as LMStudio or vLLM) with `LOVELAICE_BASE_URL`.
->
-> You can also pass `--model`, `--api-key`, and `--base-url` when calling
-> `lovelaice` if you want to define these in a per-call basis.
+You can also define a custom base URL
+(if you are using an alternative, OpenAI-compatible
+provider such as [Fireworks AI](https://fireworks.ai) or [Mistral AI](https://mistral.ai), or a local LLM server such as LMStudio or vLLM).
+Leave it blank if you are using OpenAI's API.
+
+Once configured, you'll find a `.lovelaice.yml` file in your home directory
+(or wherever you ran `lovelaice --config`). These configuration files will stack up,
+so you can have a general configuration in your home folder, and a project-specific
+configuration in any sub-folder.
+
+## Usage
 
 You can use `lovelaice` from the command line to ask anything.
 Lovelaice understands many different types of requests, and will
