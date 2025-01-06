@@ -38,6 +38,8 @@ employ different tools according to the question.
 You can also use Lovelaice in interactive mode just by typing `lovelaice` without a query.
 It will launch a conversation loop that you can close at any time with Ctrl+D.
 
+Remember to run `lovelaice --help` for a full description of all commands.
+
 ### Basic completion
 
 You can use `lovelaice` a basic completion model, passing `--complete` or `-c` for short.
@@ -47,6 +49,14 @@ You can use `lovelaice` a basic completion model, passing `--complete` or `-c` f
     Once upon a time, in a small village nestled in the rolling hills of Provence, there was a tiny, exquisite perfume shop. The sign above the door read "Maison de Rêve" – House of Dreams. The shop was owned by a kind-hearted and talented perfumer named Colette, who spent her days crafting enchanting fragrances that transported those who wore them to a world of beauty and wonder.
 
     [...]
+
+### File completion
+
+You can also run `lovelaice --complete-files [files]` and have `lovelaice` instead run completion on text file. It will scan the file for the first occurrence of the `+++` token and run completion using the previous text as prompt.
+
+Additionally, you can add `--watch` to leave `lovelaice` running in the background, watching for file changes to all of the arguments to `--complete-files`. Every time a file changes, it will run completion there.
+
+In conjunction with a sensible text editor (e.g. one that reloads files when changed on disk), this feature allows you to have an almost seamless integration between `lovelaice` and your editor. Just type a `+++` anywhere you want `lovelaice` to complete, hit Ctrl+S, and wait for a few seconds. No need for fancy editor plugins.
 
 ### Chat
 
