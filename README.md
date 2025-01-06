@@ -46,7 +46,11 @@ You can use `lovelaice` a basic completion model, passing `--complete` or `-c` f
 
     $ lovelaice -c Once upon a time, in a small village
 
-    Once upon a time, in a small village nestled in the rolling hills of Provence, there was a tiny, exquisite perfume shop. The sign above the door read "Maison de Rêve" – House of Dreams. The shop was owned by a kind-hearted and talented perfumer named Colette, who spent her days crafting enchanting fragrances that transported those who wore them to a world of beauty and wonder.
+    Once upon a time, in a small village nestled in the rolling hills of Provence,
+    there was a tiny, exquisite perfume shop. The sign above the door read
+    "Maison de Rêve" – House of Dreams. The shop was owned by a kind-hearted and
+    talented perfumer named Colette, who spent her days crafting enchanting fragrances
+    that transported those who wore them to a world of beauty and wonder.
 
     [...]
 
