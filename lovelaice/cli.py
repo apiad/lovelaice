@@ -43,8 +43,15 @@ def run():
     parser.add_argument(
         "--complete-files",
         action="store",
+        nargs="*",
         help="Similar to completion mode, but instead CLI, it will read these files and replace all instances of `+++` with a completion, using the previous content as prompt.",
-        default=False,
+        default=None,
+    )
+    parser.add_argument(
+        "--watch",
+        action="store_true",
+        help="Used only with --complete-files, keep watching for file changes until stopped with Ctrl+C.",
+        default=None,
     )
     parser.add_argument(
         "--max-tokens",
@@ -68,6 +75,10 @@ def run():
 
     if args.complete:
         asyncio.run(complete(args, llm))
+        return
+
+    if args.complete_files:
+        asyncio.run(complete_files(args, llm))
         return
 
     agent = Agent(
@@ -100,6 +111,63 @@ async def complete(args, llm: LLM):
             break
 
     print()
+
+
+async def _detect_file_changes(file, interval=1):
+    last_modified = os.path.getmtime(file)
+
+    while True:
+        current_modified = os.path.getmtime(file)
+
+        if current_modified != last_modified:
+            return
+
+        await asyncio.sleep(interval)
+
+
+async def complete_files(args, llm: LLM):
+    for file in args.complete_files:
+        await _complete_file(file, args, llm)
+
+
+async def _complete_file(file, args, llm: LLM):
+    while True:
+        prompt = []
+        complete = False
+
+        with open(file) as fp:
+            for line in fp:
+                if line.strip().endswith("+++"):
+                    if line.strip() != "+++":
+                        prompt.append(line.replace("+++", ""))
+                    complete = True
+                    break
+                else:
+                    prompt.append(line)
+
+        prompt = "\n".join(prompt)
+
+        if prompt and complete:
+            print(f"Running completion on {file}...")
+            response = await llm.complete(prompt, max_tokens=args.max_tokens)
+            print(f"Done with completion on {file}.")
+
+            lines = open(file).readlines()
+
+            with open(file, "w") as fp:
+                for line in lines:
+                    if "+++" in line:
+                        line = line.replace("+++", response)
+
+                    fp.write(line)
+        else:
+            print(f"Nothing to do in {file}.")
+
+        if args.watch:
+            print(f"Waiting for changes on {file}.")
+            await _detect_file_changes(file)
+        else:
+            return
 
 
 async def run_once(args, agent: Agent):

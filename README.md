@@ -144,13 +144,19 @@ Here is a list of things you can try:
 In general, you can attempt to ask Lovelaice to do just about anything
 that requires bash, and it will try its best. Your imagination is the only limit.
 
+## Roadmap
+
 Here are some features under active development:
 
+- Keep conversation history in context.
 - Scaffold coding projects, creating files and running initialization commands.
 - Search in Google, crawl webpages, and answer questions using that content.
 - Read files and answer questions about their content.
 - Create and modify notes, emails, calendar entries, etc.
 - VSCode extension.
+- Transcribe audio.
+- Extract structured information from plain text.
+- Structured configuration using YAML.
 
 ## Contributing
 

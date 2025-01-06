@@ -17,6 +17,14 @@ class LLM(abc.ABC):
     async def chat_stream(self, messages: list[Message], **kwargs):
         pass
 
+    async def complete(self, prompt: str, **kwargs):
+        result = []
+
+        async for chunk in self.complete_stream(prompt, **kwargs):
+            result.append(chunk)
+
+        return "".join(result)
+
     @abc.abstractmethod
     async def complete_stream(self, prompt: str, **kwargs):
         pass
