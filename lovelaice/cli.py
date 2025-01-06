@@ -77,15 +77,16 @@ def configure(config: LovelaiceConfig):
 
     for field, info in config.model_fields.items():
         print(f"[yellow]{info.description}[/yellow]")
-        value = Prompt.ask(field, default=old_config[field])
+        value = Prompt.ask(field, default=str(old_config[field]))
+        print()
 
         if value is not None:
             new_config[field] = value
 
-    print(new_config)
+    new_config = LovelaiceConfig(**new_config)
+    print(new_config.model_dump(mode="json"))
 
     if Confirm.ask("Are you happy with this configuration?"):
-        new_config = LovelaiceConfig(**new_config)
         new_config.save()
 
 

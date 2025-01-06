@@ -22,10 +22,13 @@ Before using Lovelaice, you will need an API key for OpenAI and a model.
 Run `lovelaice --config` to set up `lovelaice` for the first time.
 
     $ lovelaice --config
+
     The API base URL (in case you're not using OpenAI)
     base_url: <ENTER OR LEAVE DEFAULT>
+
     The API key to authenticate with the LLM provider
     api_key: <ENTER YOUR API KEY>
+
     The concrete LLM model to use
     model (gpt-4o): <ENTER OR LEAVE DEFAULT>
 
