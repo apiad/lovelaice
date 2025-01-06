@@ -175,7 +175,6 @@ Here are some features under active development:
 - VSCode extension.
 - Transcribe audio.
 - Extract structured information from plain text.
-- Structured configuration using YAML.
 
 ## Contributing
 
