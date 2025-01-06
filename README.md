@@ -171,18 +171,29 @@ Here is a list of things you can try:
 In general, you can attempt to ask Lovelaice to do just about anything
 that requires bash, and it will try its best. Your imagination is the only limit.
 
-## Roadmap
+### Roadmap
 
 Here are some features under active development:
 
+- Integrate `rich` for better CLI experience.
 - Keep conversation history in context.
-- Scaffold coding projects, creating files and running initialization commands.
-- Search in Google, crawl webpages, and answer questions using that content.
 - Read files and answer questions about their content.
 - Create and modify notes, emails, calendar entries, etc.
+- Read your emails and send emails on your behalf (with confirmation!).
+- Tell you about the weather (https://open-meteo.com/).
+- Scaffold coding projects, creating files and running initialization commands.
+- Search in Google, crawl webpages, and answer questions using that content.
 - VSCode extension.
 - Transcribe audio.
 - Extract structured information from plain text.
+- Understand Excel sheets and draw graphs.
+- Call APIs and download data, using the OpenAPI.json specification.
+- More powerful planning, e.g., use several tools for a single task.
+
+### Changelog
+
+- v0.3.5: Structured configuration in YAML
+- v0.3.4: Basic functionality and tools
 
 ## Contributing
 
