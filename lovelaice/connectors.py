@@ -37,7 +37,7 @@ try:
 
     class OpenAILLM(LLM):
         def __init__(self, model: str, api_key: str, base_url: str = None) -> None:
-            self.client = AsyncOpenAI(api_key=api_key, base_url=base_url)
+            self.client = AsyncOpenAI(api_key=api_key, base_url=str(base_url))
             self.model = model
 
         async def chat_stream(self, messages: list[Message], **kwargs):

@@ -2,36 +2,24 @@ import os
 import dotenv
 import asyncio
 import argparse
+from rich.prompt import Prompt, Confirm
+from rich import print
 from .core import Agent
 from .connectors import LLM, OpenAILLM
 from .tools import Bash, Chat, Codegen, Interpreter
+from .config import LovelaiceConfig
 
 
 def run():
     dotenv.load_dotenv()
+    config = LovelaiceConfig.load()
 
-    parser = argparse.ArgumentParser("lovelaice")
+    parser = argparse.ArgumentParser("lovelaice", usage="lovelaice [options] query ...")
+    parser.add_argument(
+        "--config", action="store_true", help="Run configuration and exit"
+    )
     parser.add_argument(
         "-f", "--file", action="store", help="Add a file to the context"
-    )
-    parser.add_argument(
-        "-m",
-        "--model",
-        action="store",
-        help="Model to use",
-        default=os.getenv("LOVELAICE_MODEL"),
-    )
-    parser.add_argument(
-        "--base-url",
-        action="store",
-        help="API base URL to use",
-        default=os.getenv("LOVELAICE_BASE_URL"),
-    )
-    parser.add_argument(
-        "--api-key",
-        action="store",
-        help="API key to use",
-        default=os.getenv("LOVELAICE_API_KEY"),
     )
     parser.add_argument(
         "-c",
@@ -41,44 +29,35 @@ def run():
         default=False,
     )
     parser.add_argument(
-        "--complete-files",
+        "-cf", "--complete-files",
         action="store",
         nargs="*",
         help="Similar to completion mode, but instead CLI, it will read these files and replace all instances of `+++` with a completion, using the previous content as prompt.",
+        metavar="FILE",
         default=None,
     )
     parser.add_argument(
-        "--watch",
+        "-w", "--watch",
         action="store_true",
         help="Used only with --complete-files, keep watching for file changes until stopped with Ctrl+C.",
         default=None,
-    )
-    parser.add_argument(
-        "--max-tokens",
-        action="store",
-        type=int,
-        help="Max number of tokens allowed to generate. Defaults to 2048.",
-        default=int(os.getenv("LOVELAICE_MAX_TOKENS", 2048)),
-    )
-    parser.add_argument(
-        "--min-words",
-        action="store",
-        type=int,
-        help="Only for completion mode, keep running completion until at least this number of words are generated.",
-        default=0,
     )
     parser.add_argument("query", nargs="*", default=None)
 
     args = parser.parse_args()
 
-    llm = OpenAILLM(args.model, args.api_key, args.base_url)
+    llm = OpenAILLM(config.model, config.api_key, config.base_url)
+
+    if args.config:
+        configure(config)
+        return
 
     if args.complete:
-        asyncio.run(complete(args, llm))
+        asyncio.run(complete(args, config, llm))
         return
 
     if args.complete_files:
-        asyncio.run(complete_files(args, llm))
+        asyncio.run(complete_files(args, config, llm))
         return
 
     agent = Agent(
@@ -87,12 +66,30 @@ def run():
     )
 
     if args.query:
-        asyncio.run(run_once(args, agent))
+        asyncio.run(run_once(args, config, agent))
     else:
-        asyncio.run(run_forever(args, agent))
+        asyncio.run(run_forever(args, config, agent))
 
 
-async def complete(args, llm: LLM):
+def configure(config: LovelaiceConfig):
+    new_config = {}
+    old_config = config.model_dump(mode="json")
+
+    for field, info in config.model_fields.items():
+        print(f"[yellow]{info.description}[/yellow]")
+        value = Prompt.ask(field, default=old_config[field])
+
+        if value is not None:
+            new_config[field] = value
+
+    print(new_config)
+
+    if Confirm.ask("Are you happy with this configuration?"):
+        new_config = LovelaiceConfig(**new_config)
+        new_config.save()
+
+
+async def complete(args, config: LovelaiceConfig, llm: LLM):
     prompt = " ".join(args.query)
 
     print(prompt, end="", flush=True)
@@ -100,14 +97,14 @@ async def complete(args, llm: LLM):
     while True:
         generated = False
 
-        async for chunk in llm.complete_stream(prompt, max_tokens=args.max_tokens):
+        async for chunk in llm.complete_stream(prompt, max_tokens=config.max_tokens):
             prompt += chunk
             print(chunk, end="", flush=True)
 
             if chunk:
                 generated = True
 
-        if not generated or len(prompt.split()) > args.min_words:
+        if not generated or len(prompt.split()) > config.min_words:
             break
 
     print()
@@ -125,12 +122,12 @@ async def _detect_file_changes(file, interval=1):
         await asyncio.sleep(interval)
 
 
-async def complete_files(args, llm: LLM):
+async def complete_files(args, config, llm: LLM):
     for file in args.complete_files:
         await _complete_file(file, args, llm)
 
 
-async def _complete_file(file, args, llm: LLM):
+async def _complete_file(file, args, config: LovelaiceConfig, llm: LLM):
     while True:
         prompt = []
         complete = False
@@ -149,7 +146,7 @@ async def _complete_file(file, args, llm: LLM):
 
         if prompt and complete:
             print(f"Running completion on {file}...")
-            response = await llm.complete(prompt, max_tokens=args.max_tokens)
+            response = await llm.complete(prompt, max_tokens=config.max_tokens)
             print(f"Done with completion on {file}.")
 
             lines = open(file).readlines()
@@ -170,22 +167,22 @@ async def _complete_file(file, args, llm: LLM):
             return
 
 
-async def run_once(args, agent: Agent):
+async def run_once(args, config: LovelaiceConfig, agent: Agent):
     prompt = " ".join(args.query)
 
-    async for response in agent.query(prompt, max_tokens=args.max_tokens):
+    async for response in agent.query(prompt, max_tokens=config.max_tokens):
         print(response, end="", flush=True)
 
     print()
 
 
-async def run_forever(args, agent: Agent):
+async def run_forever(args, config: LovelaiceConfig, agent: Agent):
     while True:
         try:
             prompt = input("> ")
 
             try:
-                async for response in agent.query(prompt, max_tokens=args.max_tokens):
+                async for response in agent.query(prompt, max_tokens=config.max_tokens):
                     print(response, end="", flush=True)
             except asyncio.exceptions.CancelledError:
                 print("(!) Cancelled")
