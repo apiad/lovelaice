@@ -41,6 +41,12 @@ def run():
         default=False,
     )
     parser.add_argument(
+        "--complete-files",
+        action="store",
+        help="Similar to completion mode, but instead CLI, it will read these files and replace all instances of `+++` with a completion, using the previous content as prompt.",
+        default=False,
+    )
+    parser.add_argument(
         "--max-tokens",
         action="store",
         type=int,
