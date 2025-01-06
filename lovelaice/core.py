@@ -32,6 +32,7 @@ class Agent:
         self.tools = tools
         self.tools_dir = {t.name: t for t in tools}
         self.tools_line = "\n".join(t.describe() for t in tools)
+        self.history = []
 
     async def query(
         self,

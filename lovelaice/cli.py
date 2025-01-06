@@ -19,9 +19,6 @@ def run():
         "--config", action="store_true", help="Run configuration and exit"
     )
     parser.add_argument(
-        "-f", "--file", action="store", help="Add a file to the context"
-    )
-    parser.add_argument(
         "-c",
         "--complete",
         action="store_true",
@@ -41,6 +38,9 @@ def run():
         action="store_true",
         help="Used only with --complete-files, keep watching for file changes until stopped with Ctrl+C.",
         default=None,
+    )
+    parser.add_argument(
+        "-f", "--file", action="store", help="Add a file to the context"
     )
     parser.add_argument("query", nargs="*", default=None)
 

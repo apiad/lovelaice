@@ -175,7 +175,8 @@ that requires bash, and it will try its best. Your imagination is the only limit
 
 Here are some features under active development:
 
-- Integrate `rich` for better CLI experience.
+- Integrate with `instructor` for robust JSON responses.
+- Integrate with `rich` for better CLI experience.
 - Keep conversation history in context.
 - Read files and answer questions about their content.
 - Create and modify notes, emails, calendar entries, etc.
