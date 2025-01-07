@@ -1,6 +1,5 @@
 # Code of Conduct for Lovelaice
 
-## Purpose
 This code of conduct outlines the expected behavior of all participants in our LLM-based project. Our goal is to foster a respectful, inclusive, and productive environment while ensuring the ethical use of language models.
 
 ## Principles
