@@ -42,6 +42,11 @@ def run():
     parser.add_argument(
         "-f", "--file", action="store", help="Add a file to the context"
     )
+
+    parser.add_argument("--api", action="store_true", help="Run an HTTP server instead of CLI.", default=False)
+    parser.add_argument("--host", action="store", help="Host to bind the API.", default="127.0.0.1")
+    parser.add_argument("--port", action="store", type=int, help="Port to bind the API.", default=8000)
+    parser.add_argument("--debug", action="store_true", help="Runs in debug mode, e.g. more verbose.", default=False)
     parser.add_argument("query", nargs="*", default=None)
 
     args = parser.parse_args()
@@ -64,6 +69,15 @@ def run():
         llm,
         tools=[Bash(), Chat(), Interpreter(), Codegen()],
     )
+
+    if args.api:
+        try:
+            from .api import run_api
+            run_api(debug=args.debug, host=args.host, port=args.port)
+        except ImportError:
+            print("[red]ERROR[white]: To run the API you need to install lovelaice with the `api` extra.")
+
+        return
 
     if args.query:
         asyncio.run(run_once(args, config, agent))
