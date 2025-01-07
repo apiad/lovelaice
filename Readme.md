@@ -179,6 +179,7 @@ Here are some features under active development:
 - Integrate with `rich` for better CLI experience.
 - Keep conversation history in context.
 - Read files and answer questions about their content.
+- Recover from mistakes and suggest solutions (e.g., installing libraries).
 - Create and modify notes, emails, calendar entries, etc.
 - Read your emails and send emails on your behalf (with confirmation!).
 - Tell you about the weather (https://open-meteo.com/).
