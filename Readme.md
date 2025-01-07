@@ -191,6 +191,7 @@ Here are some features under active development:
 - Understand Excel sheets and draw graphs.
 - Call APIs and download data, using the OpenAPI.json specification.
 - More powerful planning, e.g., use several tools for a single task.
+- Learning mode to add instructions for concrete skills.
 
 ### Changelog
 

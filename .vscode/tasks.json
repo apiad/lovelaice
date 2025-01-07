@@ -6,6 +6,7 @@
 		{
 			"type": "npm",
 			"script": "watch",
+			"path": "extra/vscode-lovelaice",
 			"problemMatcher": "$tsc-watch",
 			"isBackground": true,
 			"presentation": {
