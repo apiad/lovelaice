@@ -194,6 +194,7 @@ Here are some features under active development:
 
 ### Changelog
 
+- v0.3.6: Basic API (completion only)
 - v0.3.5: Structured configuration in YAML
 - v0.3.4: Basic functionality and tools
 
