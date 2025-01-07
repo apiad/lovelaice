@@ -1,0 +1,20 @@
+[project]
+name = "lovelaice"
+version = "0.3.5"
+description = "An AI-powered assistant for your terminal and editor."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "openai>=1.58.1",
+    "pydantic>=2.10.4",
+    "python-dotenv>=1.0.1",
+    "pyyaml>=6.0.2",
+    "rich>=13.9.4",
+]
+
+[project.scripts]
+lovelaice = "lovelaice:cli.run"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
