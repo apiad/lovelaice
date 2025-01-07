@@ -229,7 +229,7 @@ a random blog somehwere in the web (because that is exactly what you're doing).
 
 **Which model(s) shoud I use?**
 
-I have tested `lovelaice` extensibly using `Llama 3.1 70b`, from <fireworks.ai>.
+I have tested `lovelaice` extensibly using `Llama 3.1 70b`, from [Fireworks AI](https://fireworks.ai).
 It is fairly versatile model that is still affordable enough for full-time use. It works well for coding, general chat, bash generation, creative storytelling, and basically anything I use `lovelaice` on a daily basis.
 
 Thus, probably any model with a similar general performance to Llama 70b will work similarly well. You are unlikely to need, e.g., a 400b model unless you want a pretty complex task. However, using very small models, e.g., 11b or less, may lead to degraded performance, especially because these models may fail to even detect which is the best tool to use. In any case, there is no substitute for experimentation.
