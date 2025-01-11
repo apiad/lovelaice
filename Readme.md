@@ -179,6 +179,7 @@ Here are some features under active development:
 - Integrate with `instructor` for robust JSON responses.
 - Integrate with `rich` for better CLI experience.
 - Keep conversation history in context.
+- Separate tools from skills to improve intent detection.
 - Read files and answer questions about their content.
 - Recover from mistakes and suggest solutions (e.g., installing libraries).
 - Create and modify notes, emails, calendar entries, etc.
