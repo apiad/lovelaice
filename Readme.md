@@ -204,6 +204,10 @@ Here are some features under active development:
 Code is MIT. Just fork, clone, edit, and open a PR.
 All suggestions, bug reports, and contributions are welcome.
 
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=apiad/lovelaice&type=Date)](https://star-history.com/#apiad/lovelaice&Date)
+
 ## FAQ
 
 **What models do you use?**
