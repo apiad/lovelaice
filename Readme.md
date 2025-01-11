@@ -175,6 +175,7 @@ that requires bash, and it will try its best. Your imagination is the only limit
 
 Here are some features under active development:
 
+- JSON mode, reply with a JSON object if invoked with `--json`.
 - Integrate with `instructor` for robust JSON responses.
 - Integrate with `rich` for better CLI experience.
 - Keep conversation history in context.
