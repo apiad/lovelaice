@@ -175,9 +175,11 @@ that requires bash, and it will try its best. Your imagination is the only limit
 
 Here are some features under active development:
 
+- JSON mode, reply with a JSON object if invoked with `--json`.
 - Integrate with `instructor` for robust JSON responses.
 - Integrate with `rich` for better CLI experience.
 - Keep conversation history in context.
+- Separate tools from skills to improve intent detection.
 - Read files and answer questions about their content.
 - Recover from mistakes and suggest solutions (e.g., installing libraries).
 - Create and modify notes, emails, calendar entries, etc.
@@ -203,6 +205,10 @@ Here are some features under active development:
 
 Code is MIT. Just fork, clone, edit, and open a PR.
 All suggestions, bug reports, and contributions are welcome.
+
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=apiad/lovelaice&type=Date)](https://star-history.com/#apiad/lovelaice&Date)
 
 ## FAQ
 
