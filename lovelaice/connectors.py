@@ -2,10 +2,15 @@ import abc
 from openai import AsyncOpenAI
 from openai.types.chat import ChatCompletionChunk
 from openai.types.completion import Completion
+
+from .config import LovelaiceConfig
 from .models import Message
 
 
 class LLM(abc.ABC):
+    def __init__(self, config: LovelaiceConfig) -> None:
+        self.config = config
+
     async def chat(self, messages: list[Message], **kwargs):
         result = []
 
@@ -13,10 +18,6 @@ class LLM(abc.ABC):
             result.append(chunk)
 
         return "".join(result)
-
-    @abc.abstractmethod
-    async def chat_stream(self, messages: list[Message], **kwargs):
-        pass
 
     async def complete(self, prompt: str, **kwargs):
         result = []
@@ -26,20 +27,13 @@ class LLM(abc.ABC):
 
         return "".join(result)
 
-    @abc.abstractmethod
-    async def complete_stream(self, prompt: str, **kwargs):
-        pass
-
-
-class OpenAILLM(LLM):
-    def __init__(self, model: str, api_key: str, base_url: str = None) -> None:
-        self.client = AsyncOpenAI(api_key=api_key, base_url=str(base_url))
-        self.model = model
-
     async def chat_stream(self, messages: list[Message], **kwargs):
-        stream = await self.client.chat.completions.create(
+        client = AsyncOpenAI(api_key=self.config.chat_model.api_key, base_url=self.config.chat_model.base_url)
+        model = self.config.chat_model.model
+
+        stream = await client.chat.completions.create(
             messages=[dict(role=m.role, content=m.content) for m in messages],
-            model=self.model,
+            model=model,
             stream=True,
             **kwargs,
         )
@@ -49,10 +43,20 @@ class OpenAILLM(LLM):
             yield r.choices[0].delta.content or ""
 
     async def complete_stream(self, prompt: str, **kwargs):
-        stream = await self.client.completions.create(
-            model=self.model, prompt=prompt, stream=True, **kwargs
+        client = AsyncOpenAI(api_key=self.config.chat_model.api_key, base_url=self.config.chat_model.base_url)
+        model = self.config.chat_model.model
+
+        stream = await client.completions.create(
+            model=model, prompt=prompt, stream=True, **kwargs
         )
 
         async for chunk in stream:
             r: Completion = chunk
             yield r.choices[0].text or ""
+
+    async def transcribe(self, file, **kwargs):
+        client = AsyncOpenAI(api_key=self.config.audio_model.api_key, base_url=self.config.audio_model.base_url)
+        model = self.config.audio_model.model
+
+        response = await client.audio.transcriptions.create(file=file, model=model, **kwargs)
+        return response

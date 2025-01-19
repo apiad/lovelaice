@@ -2,10 +2,11 @@ import os
 import dotenv
 import asyncio
 import argparse
+from pydantic import BaseModel
 from rich.prompt import Prompt, Confirm
 from rich import print
 from .core import Agent
-from .connectors import LLM, OpenAILLM
+from .connectors import LLM
 from .tools import Bash, Chat, Codegen, Interpreter
 from .config import LovelaiceConfig
 
@@ -15,6 +16,7 @@ def run():
     config = LovelaiceConfig.load()
 
     parser = argparse.ArgumentParser("lovelaice", usage="lovelaice [options] query ...")
+    parser.add_argument("--version", action="store_true", help="Print version and exit")
     parser.add_argument(
         "--config", action="store_true", help="Run configuration and exit"
     )
@@ -42,6 +44,9 @@ def run():
     parser.add_argument(
         "-f", "--file", action="store", help="Add a file to the context"
     )
+    parser.add_argument(
+        "-a", "--audio", action="store", help="Add an audio file to the context"
+    )
 
     parser.add_argument("--api", action="store_true", help="Run an HTTP server instead of CLI.", default=False)
     parser.add_argument("--host", action="store", help="Host to bind the API.", default="127.0.0.1")
@@ -51,11 +56,16 @@ def run():
 
     args = parser.parse_args()
 
-    llm = OpenAILLM(config.model, config.api_key, config.base_url)
+    if args.version:
+        from lovelaice import VERSION
+        print(f"version={VERSION}")
+        return
 
     if args.config:
         configure(config)
         return
+
+    llm = LLM(config)
 
     if args.complete:
         asyncio.run(complete(args, config, llm))
@@ -85,17 +95,27 @@ def run():
         asyncio.run(run_forever(args, config, agent))
 
 
-def configure(config: LovelaiceConfig):
+def _build_config(model: type[BaseModel], old_config, indent=0):
     new_config = {}
-    old_config = config.model_dump(mode="json")
 
-    for field, info in config.model_fields.items():
-        print(f"[yellow]{info.description}[/yellow]")
-        value = Prompt.ask(field, default=str(old_config[field]))
-        print()
+    for field, info in model.model_fields.items():
+        if isinstance(info.annotation, type) and issubclass(info.annotation, BaseModel):
+            print(f"[purple]{indent * "  "}{field}[/purple]: {info.description}\n")
+            value = _build_config(info.annotation, old_config.get(field, {}), indent+1)
+        else:
+            print(f"[yellow]{indent * "  "}{info.description}[/yellow]")
+            value = Prompt.ask(indent * "  " + field, default=str(old_config[field]))
+            print()
 
         if value is not None:
             new_config[field] = value
+
+    return new_config
+
+
+def configure(config: LovelaiceConfig):
+    old_config = config.model_dump(mode="json")
+    new_config = _build_config(LovelaiceConfig, old_config)
 
     new_config = LovelaiceConfig(**new_config)
     print(new_config.model_dump(mode="json"))
@@ -184,6 +204,13 @@ async def _complete_file(file, args, config: LovelaiceConfig, llm: LLM):
 
 async def run_once(args, config: LovelaiceConfig, agent: Agent):
     prompt = " ".join(args.query)
+    transcription = ""
+
+    if args.audio:
+        with open(args.audio, 'rb') as fp:
+            transcription = await agent.client.transcribe(fp)
+
+    prompt = "\n\n".join([transcription, prompt])
 
     async for response in agent.query(prompt, max_tokens=config.max_tokens):
         print(response, end="", flush=True)
