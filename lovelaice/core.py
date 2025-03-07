@@ -77,7 +77,7 @@ class Agent:
                 for line in tool.use(prompt, response):
                     output.append(line)
                     yield line
-
+                
                 output = "\n".join(output)
                 conclusion = tool.conclude(prompt, output)
 

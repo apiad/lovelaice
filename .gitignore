@@ -327,3 +327,5 @@ dist
 data/*
 app/lovelaice
 app/uploads
+
+.lovelaice.yml
