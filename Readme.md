@@ -4,6 +4,7 @@
 ![GitHub License](https://img.shields.io/github/license/apiad/lovelaice)
 ![PyPI - Downloads](https://img.shields.io/pypi/dm/lovelaice)
 ![GitHub commit activity](https://img.shields.io/github/commit-activity/m/apiad/lovelaice)
+[![Made with ARGO](https://img.shields.io/badge/made_with-argo_ai-purple)](https://github.com/apiad/argo)
 
 Lovelaice is an LLM-powered bot that sits in your terminal.
 It has access to your files and it can run bash commands for you.
