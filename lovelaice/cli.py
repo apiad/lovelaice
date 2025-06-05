@@ -7,7 +7,7 @@ from rich.prompt import Prompt, Confirm
 from rich import print
 from .core import Agent
 from .connectors import LLM
-from .tools import Bash, Chat, Codegen, Interpreter
+from .tools import Bash, Chat, Codegen, Interpreter, Weather
 from .config import LovelaiceConfig
 
 
@@ -80,7 +80,7 @@ def run():
 
     agent = Agent(
         llm,
-        tools=[Bash(), Chat(), Interpreter(), Codegen()],
+        tools=[Bash(), Chat(), Interpreter(), Codegen(), Weather()],
     )
 
     if args.api:

@@ -1,5 +1,7 @@
 import subprocess
 import importlib
+import requests
+from pathlib import Path
 
 
 class Tool:
@@ -180,4 +182,49 @@ Enclose all code examples in ``` with the corresponding
 programming language identifier.
 
 Query: {query}
+"""
+
+class Weather(Tool):
+    """
+    When the user asks for the weather.
+    """
+
+    def prompt(self, query) -> str:
+        yaml_content = importlib.resources.files('lovelaice').joinpath('api.open-meteo.yml').read_text()
+        return f"""
+You're a helpful weather assistant. I want to retrieve the weather for a user query using this OpenAPI schema: 
+```yaml
+{yaml_content}
+```
+
+If the user requests the weather for:
+- today, focus in the `current` parameter.
+- a specific day, focus in the `hourly` parameter.
+- a future day, focus in the `daily` parameter and use `forecast_days` parameter.
+- a past day, focus in the `hourly` parameter and use `past_days` parameter.
+- a range of days, focus in the `start_date` and `end_date` parameters.
+
+If the user requests the weather in general, focus in temperature, wind, humidity, precipitation, cloud cover, and weather codes if available.
+
+Generate the URL to retrieve the weather for the user query using the right parameters.
+Do not add any other text than the URL.
+
+Query: {query}
+URL: 
+"""
+
+    def use(self, query, response):
+        endpoint = response.split()[1]
+        yield f"Retrieving weather from {endpoint}\n\n"
+
+        response = requests.get(endpoint)
+        yield response.text.strip() + "\n"
+    
+    def conclude(self, query, output):
+        return f"""
+The user issued the following query:
+
+Query: {query}
+
+The weather for the user query is: {output}. Write a short summary of the weather. If the temperature appears in the response, show itin Celsius and Fahrenheit.
 """
