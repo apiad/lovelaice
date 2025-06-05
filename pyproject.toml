@@ -3,8 +3,9 @@ name = "lovelaice"
 version = "0.3.6"
 description = "An AI-powered assistant for your terminal and editor."
 readme = "Readme.md"
-requires-python = ">=3.10"
+requires-python = ">=3.13"
 dependencies = [
+    "argo-ai>=0.3.0",
     "openai>=1.58.1",
     "pydantic>=2.10.4",
     "python-dotenv>=1.0.1",

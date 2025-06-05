@@ -47,6 +47,9 @@ def run():
     parser.add_argument(
         "-a", "--audio", action="store", help="Add an audio file to the context"
     )
+    parser.add_argument(
+        "-j", "--json", action="store_true", help="Force the reply to JSON mode"
+    )
 
     parser.add_argument("--api", action="store_true", help="Run an HTTP server instead of CLI.", default=False)
     parser.add_argument("--host", action="store", help="Host to bind the API.", default="127.0.0.1")
