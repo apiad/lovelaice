@@ -13,9 +13,9 @@ questions, as well as technical ones.
 
 ## Installation
 
-Install with pip:
+Install with [pipx](https://pipx.pypa.io/stable/):
 
-    pip install lovelaice
+    pipx install lovelaice
 
 ## Configuring
 
@@ -198,6 +198,7 @@ Here are some features under active development:
 
 ### Changelog
 
+- v0.4.0: Add Bash skill
 - v0.3.6: Basic API (completion only)
 - v0.3.5: Structured configuration in YAML
 - v0.3.4: Basic functionality and tools

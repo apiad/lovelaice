@@ -1,4 +1,7 @@
+import subprocess
 from argo import ChatAgent, LLM, Context
+from rich import print
+from rich.prompt import Confirm
 
 
 SYSTEM_PROMPT = """
@@ -23,12 +26,73 @@ class Lovelaice(ChatAgent):
             system_prompt=SYSTEM_PROMPT)
 
         # register all skills
-        self.skill(self.chat)
+        self.skill(chat)
+        self.skill(bash)
 
         # register all tools
+        self.run_bash = self.tool(run_bash)
 
-    async def chat(self, ctx: Context):
-        """
-        Chat with Lovelaice. Use this skill for casual chat.
-        """
-        yield await ctx.reply()
+
+async def chat(ctx: Context):
+    """
+    Chat with Lovelaice. Use this skill for casual chat.
+    """
+    yield await ctx.reply()
+
+
+async def bash(ctx: Context):
+    """
+    Use bash code.
+
+    This skill is useful when the user asks
+    about the filesystem, install some program, etc.
+    """
+    ctx.add("Given the user query, generate a bash code to answer it.")
+    result = await ctx.invoke(ctx.agent.run_bash) # type: ignore
+    print()
+
+    ctx.add("After executing the bash script, you obtained the following result.")
+    ctx.add(result)
+
+    yield await ctx.reply("Reply concisely to the user.")
+
+
+async def run_bash(script: str) -> str:
+    """
+    Run a bash script.
+
+    Make sure the `script` argument is a
+    Bash script, enclosed in triple backticks
+    such as
+
+    ```bash
+    # the script here
+    ```
+
+    The script can have as many lines as necessary.
+    """
+    # strip backticks
+    preamble = script.find("```bash")
+
+    if preamble != -1:
+        script = script[preamble + 7:]
+
+    postamble = script.rfind("```")
+
+    if postamble != -1:
+        script = script[:postamble]
+
+    # inform the user
+
+    print("Will run the following code:\n")
+    print(script)
+    print()
+
+    if Confirm.ask("Run the code?"):
+        result = subprocess.run(script, shell=True, capture_output=True, text=True)
+        if result:
+            return result.stdout
+        else:
+            return "Script executed correctly."
+    else:
+        return "User aborted the script."

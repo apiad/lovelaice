@@ -192,7 +192,7 @@ class Weather(Tool):
     def prompt(self, query) -> str:
         yaml_content = importlib.resources.files('lovelaice').joinpath('api.open-meteo.yml').read_text()
         return f"""
-You're a helpful weather assistant. I want to retrieve the weather for a user query using this OpenAPI schema: 
+You're a helpful weather assistant. I want to retrieve the weather for a user query using this OpenAPI schema:
 ```yaml
 {yaml_content}
 ```
@@ -210,7 +210,7 @@ Generate the URL to retrieve the weather for the user query using the right para
 Do not add any other text than the URL.
 
 Query: {query}
-URL: 
+URL:
 """
 
     def use(self, query, response):
@@ -219,7 +219,7 @@ URL:
 
         response = requests.get(endpoint)
         yield response.text.strip() + "\n"
-    
+
     def conclude(self, query, output):
         return f"""
 The user issued the following query:
