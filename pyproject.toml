@@ -5,13 +5,14 @@ description = "An AI-powered assistant for your terminal and editor."
 readme = "Readme.md"
 requires-python = ">=3.13"
 dependencies = [
-    "argo-ai>=0.3.0",
+    "argo-ai>=0.3.1",
     "openai>=1.58.1",
     "pydantic>=2.10.4",
     "python-dotenv>=1.0.1",
     "pyyaml>=6.0.2",
     "requests>=2.32.3",
     "rich>=13.9.4",
+    "typer>=0.16.0",
 ]
 
 [project.scripts]
@@ -32,3 +33,6 @@ dev = [
     "black>=24.10.0",
     "pytest>=8.3.4",
 ]
+
+[tool.uv.sources]
+argo-ai = { path = "argo", editable = true }

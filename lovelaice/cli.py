@@ -5,8 +5,9 @@ import argparse
 from pydantic import BaseModel
 from rich.prompt import Prompt, Confirm
 from rich import print
-from .core import Agent
-from .connectors import LLM
+from .core import Lovelaice
+from argo.cli import loop
+from argo import LLM
 from .tools import Bash, Chat, Codegen, Interpreter, Weather
 from .config import LovelaiceConfig
 
@@ -59,16 +60,14 @@ def run():
 
     args = parser.parse_args()
 
-    if args.version:
-        from lovelaice import VERSION
-        print(f"version={VERSION}")
-        return
-
     if args.config:
         configure(config)
         return
 
-    llm = LLM(config)
+    def callback(chunk:str):
+        print(chunk, end="")
+
+    llm = LLM(model=config.chat_model.model, api_key=config.chat_model.api_key, base_url=config.chat_model.base_url, callback=callback)
 
     if args.complete:
         asyncio.run(complete(args, config, llm))
@@ -78,24 +77,14 @@ def run():
         asyncio.run(complete_files(args, config, llm))
         return
 
-    agent = Agent(
-        llm,
-        tools=[Bash(), Chat(), Interpreter(), Codegen(), Weather()],
+    agent = Lovelaice(
+        llm
     )
-
-    if args.api:
-        try:
-            from .api import run_api
-            run_api(debug=args.debug, host=args.host, port=args.port)
-        except ImportError:
-            print("[red]ERROR[white]: To run the API you need to install lovelaice with the `api` extra.")
-
-        return
 
     if args.query:
         asyncio.run(run_once(args, config, agent))
     else:
-        asyncio.run(run_forever(args, config, agent))
+        loop(agent)
 
 
 def _build_config(model: type[BaseModel], old_config, indent=0):
@@ -205,7 +194,7 @@ async def _complete_file(file, args, config: LovelaiceConfig, llm: LLM):
             return
 
 
-async def run_once(args, config: LovelaiceConfig, agent: Agent):
+async def run_once(args, config: LovelaiceConfig, agent: Lovelaice):
     prompt = " ".join(args.query)
     transcription = ""
 
@@ -219,21 +208,3 @@ async def run_once(args, config: LovelaiceConfig, agent: Agent):
         print(response, end="", flush=True)
 
     print()
-
-
-async def run_forever(args, config: LovelaiceConfig, agent: Agent):
-    while True:
-        try:
-            prompt = input("> ")
-
-            try:
-                async for response in agent.query(prompt, max_tokens=config.max_tokens):
-                    print(response, end="", flush=True)
-            except asyncio.exceptions.CancelledError:
-                print("(!) Cancelled")
-
-            print("\n")
-        except KeyboardInterrupt:
-            break
-        except EOFError:
-            break

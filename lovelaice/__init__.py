@@ -1,1 +1,1 @@
-VERSION = "0.3.6"
+from .core import Lovelaice
