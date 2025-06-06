@@ -1,6 +1,6 @@
 import subprocess
 from argo import ChatAgent, LLM, Context
-from rich import print
+from rich import print, get_console
 from rich.prompt import Confirm
 
 
@@ -17,20 +17,36 @@ and manipulate the user filesytem, always with user confirmation.
 """
 
 
+from argo.skills import MethodSkill
+from argo.tools import MethodTool
+
+
+class LovelaiceSkill(MethodSkill):
+    async def execute(self, ctx: Context):
+        print(f"[green]Executing skill [bold]{self.name}[/bold][/green]")
+        async for m in super().execute(ctx):
+            yield m
+
+
+class LovelaiceTool(MethodTool):
+    async def run(self, **kwargs):
+        print(f"[yellow]Invoking [bold]{self.name}[/bold][/yellow]")
+        return await super().run(**kwargs)
+
+
 class Lovelaice(ChatAgent):
     def __init__(self, llm: LLM):
         super().__init__(
             "Lovelaice",
             "A helpful AI agent that runs in the user terminal.",
             llm,
-            system_prompt=SYSTEM_PROMPT)
+            system_prompt=SYSTEM_PROMPT,
+            skill_cls=LovelaiceSkill,
+            tool_cls=LovelaiceTool,
+            skills=[chat, linux],
+        )
 
-        # register all skills
-        self.skill(chat)
-        self.skill(bash)
-
-        # register all tools
-        self.run_bash = self.tool(run_bash)
+        self.bash = self.tool(bash)
 
 
 async def chat(ctx: Context):
@@ -40,15 +56,16 @@ async def chat(ctx: Context):
     yield await ctx.reply()
 
 
-async def bash(ctx: Context):
+async def linux(ctx: Context):
     """
-    Use bash code.
+    Use the Linux terminal.
 
     This skill is useful when the user asks
     about the filesystem, install some program, etc.
     """
     ctx.add("Given the user query, generate a bash code to answer it.")
-    result = await ctx.invoke(ctx.agent.run_bash) # type: ignore
+
+    result = await ctx.invoke(ctx.agent.bash, errors="handle")  # type: ignore
     print()
 
     ctx.add("After executing the bash script, you obtained the following result.")
@@ -57,7 +74,7 @@ async def bash(ctx: Context):
     yield await ctx.reply("Reply concisely to the user.")
 
 
-async def run_bash(script: str) -> str:
+async def bash(script: str) -> str:
     """
     Run a bash script.
 
@@ -75,7 +92,7 @@ async def run_bash(script: str) -> str:
     preamble = script.find("```bash")
 
     if preamble != -1:
-        script = script[preamble + 7:]
+        script = script[preamble + 7 :]
 
     postamble = script.rfind("```")
 
@@ -85,14 +102,20 @@ async def run_bash(script: str) -> str:
     # inform the user
 
     print("Will run the following code:\n")
-    print(script)
+
+    if len(script.split("\n")) == 1:
+        print("$ " + script)
+    else:
+        print(f"```bash\n{script}\n```")
+
     print()
 
     if Confirm.ask("Run the code?"):
-        result = subprocess.run(script, shell=True, capture_output=True, text=True)
-        if result:
-            return result.stdout
-        else:
-            return "Script executed correctly."
+        with get_console().status("Running code", spinner="dots"):
+            result = subprocess.run(
+                script, shell=True, capture_output=True, text=True, check=True
+            )
+
+        return result.stdout or "Script executed correctly."
     else:
         return "User aborted the script."
