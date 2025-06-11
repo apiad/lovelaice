@@ -72,9 +72,9 @@ def run():
         print(chunk, end="")
 
     llm = LLM(
-        model=config.chat_model.model,
-        api_key=config.chat_model.api_key,
-        base_url=config.chat_model.base_url,
+        model=config.model.name,
+        api_key=config.model.api_key,
+        base_url=config.model.base_url,
         callback=callback,
         verbose=args.verbose,
     )

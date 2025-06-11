@@ -6,13 +6,11 @@ import pathlib
 class ModelConfig(BaseModel):
     base_url: str = Field(default="", description="The API base URL (in case you're not using OpenAI)")
     api_key: str = Field(default="", description="The API key to authenticate with the LLM provider")
-    model: str = Field(default="", description="The concrete LLM model to use")
+    name: str = Field(default="", description="The concrete LLM model to use")
 
 
 class LovelaiceConfig(BaseModel):
-    chat_model: ModelConfig = Field(default_factory=ModelConfig, description="Configuration for the default chat model.")
-    audio_model: ModelConfig = Field(default_factory=ModelConfig, description="Configuration for the audio model.")
-    code_model: ModelConfig = Field(default_factory=ModelConfig, description="Configuration for the code model.")
+    model: ModelConfig = Field(default_factory=ModelConfig, description="Configuration for the code model.")
     max_tokens: int = Field(2048, description="Max number of tokens to generate in a single prompt")
     min_words: int = Field(0, description="For completion only, min number of words to generate")
 
