@@ -2,6 +2,7 @@ import os
 import dotenv
 import asyncio
 import argparse
+import sys
 
 from pydantic import BaseModel
 from rich.prompt import Prompt, Confirm
@@ -129,6 +130,11 @@ def configure(config: LovelaiceConfig):
 async def complete(args, config: LovelaiceConfig, llm: LLM):
     prompt = " ".join(args.query)
 
+    piped = sys.stdin.read()
+
+    if piped:
+        prompt = piped + "\n\n" + prompt
+
     print(prompt, end="", flush=True)
     await llm.complete(prompt, max_tokens=config.max_tokens)
 
@@ -194,6 +200,11 @@ async def _complete_file(file, args, config: LovelaiceConfig, llm: LLM):
 
 async def run_once(args, config: LovelaiceConfig, agent: Lovelaice):
     prompt = " ".join(args.query)
+
+    piped = sys.stdin.read()
+
+    if piped:
+        prompt = piped + "\n\n" + prompt
 
     async for m in agent.perform(Message.user(prompt)):
         pass

@@ -157,6 +157,42 @@ And if you ask it something math-related it can generate and run Python for you:
 Make sure that you understand what the code will do, otherwise there is no guarantee
 your computer won't suddenly grow a hand and slap you in the face, like, literally.
 
+### Standard input
+
+You can pass any content to Lovelaice via pipe and it will be included in the prompt:
+
+```
+$ cat Readme.md | lovelaice summarize this for a 5yo
+
+**Hi there! I'm Lovelaice!**
+
+I'm a special helper that lives in your computer. I can do lots of things for you!
+
+* I can talk to you and answer your questions.
+* I can help you with your homework or projects.
+* I can even run some commands on your computer for you (but only if you say it's okay!).
+
+**How do I work?**
+
+You can talk to me by typing messages, and I'll respond with answers or do things for you.
+
+**Is it safe?**
+
+Don't worry! I'll never do anything without you saying it's okay first. And always check what I suggest before doing it, just like you would with a grown-up.
+
+**What can I help with?**
+
+You can ask me anything! Like:
+
+* What's the weather like today?
+* How do I make a yummy recipe?
+* Can you help me with my math homework?
+
+I'm here to help and have fun with you!
+```
+
+> NOTE: This is intended to work with plain text. If you want to transcribe audio, you can use `whisper` or `vosk` to convert it to text first.
+
 ## Features
 
 So far Lovelaice has both general-purpose chat capabilites, and access to bash.
@@ -198,6 +234,7 @@ Here are some features under active development:
 
 ### Changelog
 
+- v0.4.3: Support for standard input
 - v0.4.1: Add Python skill
 - v0.4.0: Add Bash skill
 - v0.3.6: Basic API (completion only)
