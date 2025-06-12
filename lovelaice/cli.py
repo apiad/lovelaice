@@ -72,12 +72,18 @@ def run():
     def callback(chunk: str):
         print(chunk, end="")
 
+    extra_kwargs = {}
+
+    if args.json:
+        extra_kwargs['response_format'] = dict(type="json_object")
+
     llm = LLM(
         model=config.model.name,
         api_key=config.model.api_key,
         base_url=config.model.base_url,
         callback=callback,
         verbose=args.verbose,
+        **extra_kwargs,
     )
 
     if args.complete:
