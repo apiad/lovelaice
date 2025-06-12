@@ -198,6 +198,7 @@ Here are some features under active development:
 
 ### Changelog
 
+- v0.4.1: Add Python skill
 - v0.4.0: Add Bash skill
 - v0.3.6: Basic API (completion only)
 - v0.3.5: Structured configuration in YAML

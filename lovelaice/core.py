@@ -24,8 +24,7 @@ from argo.tools import MethodTool
 class LovelaiceSkill(MethodSkill):
     async def execute(self, ctx: Context):
         print(f"[green]Executing skill [bold]{self.name}[/bold][/green]")
-        async for m in super().execute(ctx):
-            yield m
+        await super().execute(ctx)
 
 
 class LovelaiceTool(MethodTool):
@@ -40,8 +39,8 @@ class LovelaiceContext(Context):
             return await super().engage(*instructions)
 
 
-from lovelaice.skills import chat, linux
-from lovelaice.tools import bash
+from lovelaice.skills import chat, linux, code
+from lovelaice.tools import bash, python
 
 
 class Lovelaice(ChatAgent):
@@ -54,7 +53,8 @@ class Lovelaice(ChatAgent):
             skill_cls=LovelaiceSkill,
             tool_cls=LovelaiceTool,
             context_cls=LovelaiceContext,
-            skills=[chat, linux],
+            skills=[chat, linux, code],
         )
 
         self.bash = self.tool(bash)
+        self.python = self.tool(python)
