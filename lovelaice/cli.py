@@ -3,6 +3,7 @@ import dotenv
 import asyncio
 import argparse
 import sys
+import select
 
 from pydantic import BaseModel
 from rich.prompt import Prompt, Confirm
@@ -136,7 +137,7 @@ def configure(config: LovelaiceConfig):
 async def complete(args, config: LovelaiceConfig, llm: LLM):
     prompt = " ".join(args.query)
 
-    piped = sys.stdin.read()
+    piped = get_stdin()
 
     if piped:
         prompt = piped + "\n\n" + prompt
@@ -207,7 +208,7 @@ async def _complete_file(file, args, config: LovelaiceConfig, llm: LLM):
 async def run_once(args, config: LovelaiceConfig, agent: Lovelaice):
     prompt = " ".join(args.query)
 
-    piped = sys.stdin.read()
+    piped = get_stdin()
 
     if piped:
         prompt = piped + "\n\n" + prompt
@@ -216,3 +217,10 @@ async def run_once(args, config: LovelaiceConfig, agent: Lovelaice):
         pass
 
     print()
+
+def get_stdin():
+    # select.select checks if sys.stdin is ready for reading (0 timeout means non-blocking)
+    if select.select([sys.stdin], [], [], 0.0)[0]:
+        return sys.stdin.read()
+
+    return None
