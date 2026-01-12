@@ -1,38 +1,19 @@
 [project]
 name = "lovelaice"
-version = "0.4.3"
-description = "An AI-powered assistant for your terminal and editor."
-readme = "Readme.md"
+version = "0.5.0"
+description = "An open-source, extensible AI agent for your terminal."
+readme = "README.md"
+authors = [
+    { name = "Alejandro Piad", email = "apiad@apiad.net" }
+]
 requires-python = ">=3.13"
 dependencies = [
-    "argo-ai>=0.4.0",
-    "openai>=1.58.1",
-    "pydantic>=2.10.4",
-    "python-dotenv>=1.0.1",
-    "pyyaml>=6.0.2",
-    "requests>=2.32.3",
-    "rich>=13.9.4",
-    "typer>=0.16.0",
-]
-
-[project.scripts]
-lovelaice = "lovelaice:cli.run"
-
-[project.optional-dependencies]
-api = [
-    "fastapi>=0.115.6",
-    "uvicorn>=0.34.0",
+    "lingo-ai==1.0rc1",
 ]
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
-[dependency-groups]
-dev = [
-    "black>=24.10.0",
-    "pytest>=8.3.4",
-]
-
-[tool.uv.sources]
-argo-ai = { path = "argo", editable = true }
+[project.scripts]
+lovelaice="lovelaice.cli:run"
