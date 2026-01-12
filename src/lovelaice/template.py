@@ -10,9 +10,9 @@ from lovelaice import Lovelaice
 # You can override this globally with the --model flag.
 MODELS = {
     "default": {
-        "model": "{default_model}",
+        "model": "<default_model>",
         "api_key": os.getenv("API_KEY"),
-        "base_url": "{base_url}",
+        "base_url": "<base_url>",
     },
     # You can add more models here
     # Ex: "pro": { ... } for a more expensive model

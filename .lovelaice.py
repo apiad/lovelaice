@@ -9,16 +9,13 @@ from lovelaice import Lovelaice
 # The first model in this dictionary is the default for all operations.
 # You can override this globally with the --model flag.
 MODELS = {
-    "flash": {
-        "model": "gemini-1.5-flash",
-        "api_key": os.getenv("GEMINI_API_KEY"),
-        "base_url": "https://generativelanguage.googleapis.com/v1beta/openai",
+    "default": {
+        "model": "gemini-2.0-flash",
+        "api_key": os.getenv("API_KEY"),
+        "base_url": "https://openrouter.io/api/v1",
     },
-    "pro": {
-        "model": "gemini-1.5-pro",
-        "api_key": os.getenv("GEMINI_API_KEY"),
-        "base_url": "https://generativelanguage.googleapis.com/v1beta/openai",
-    },
+    # You can add more models here
+    # Ex: "pro": { ... } for a more expensive model
 }
 
 # --- 2. Instantiate the agent
