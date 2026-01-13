@@ -85,4 +85,5 @@ async def smalltalk(ctx: Context, engine: Engine):
     """
     A friendly smalltalk when the user just wants to chat.
     """
-    await engine.reply(ctx)
+    msg = await engine.reply(ctx)
+    ctx.append(msg)

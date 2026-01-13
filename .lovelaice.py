@@ -80,9 +80,3 @@ async def get_today() -> str:
 # --- 4. Custom Skills ---
 # Use the @skill decorator to define specific high-level workflows.
 # These can be triggered directly via 'lovelaice --skill hello'.
-@config.register_skill
-async def smalltalk(ctx: Context, engine: Engine):
-    """
-    A friendly smalltalk when the user just wants to chat.
-    """
-    await engine.reply(ctx)
