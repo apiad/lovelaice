@@ -16,6 +16,7 @@ from rich.markdown import Markdown
 
 from dotenv import load_dotenv
 
+from .security import SecurityManager
 from .config import Config, find_config_file, load_agent_from_config
 from .core import Lovelaice
 
@@ -109,6 +110,12 @@ def main(
         )
         raise typer.Exit()
 
+    security = SecurityManager(
+        read_paths=read,
+        write_paths=write,
+        allow_execute=execute,
+    )
+
     config_path = find_config_file()
 
     if not config_path:
@@ -120,7 +127,7 @@ def main(
 
     try:
         config = load_agent_from_config(config_path)
-        bot = config.build(model=model, on_token=on_token)
+        bot = config.build(model=model, on_token=on_token, security=security)
     except Exception as e:
         typer.echo(f"❌ Failed to load agent: {e}", err=True)
         raise typer.Exit(1)
@@ -149,7 +156,7 @@ def main(
             try:
                 config = load_agent_from_config(config_path)
                 # Pass our custom system prompt and the token callback
-                bot = config.build(model=model, on_token=on_token)
+                bot = config.build(model=model, on_token=on_token, security=security)
 
                 asyncio.run(bot.chat(prompt))
             except Exception as e:
@@ -159,7 +166,7 @@ def main(
         # Interactive mode logic...
         try:
             config = load_agent_from_config(config_path)
-            asyncio.run(chat_loop(model, config))
+            asyncio.run(chat_loop(model, config, security))
         except Exception as e:
             console.print(f"[bold red]❌ Error:[/] {e}")
             raise typer.Exit(1)
@@ -186,7 +193,7 @@ class LiveChat:
         )
 
 
-async def chat_loop(model: str | None, config: Config):
+async def chat_loop(model: str | None, config: Config, security: SecurityManager):
     """
     A stateful chat loop that renders user and assistant messages
     using Rich panels.
@@ -209,7 +216,7 @@ async def chat_loop(model: str | None, config: Config):
     def on_token(token: str):
         chat.update(token)
 
-    bot = config.build(model, on_token)
+    bot = config.build(model, on_token, security)
 
     while True:
         # 1. Get User Input

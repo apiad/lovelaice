@@ -64,11 +64,23 @@ Your core skills include:
 # the Config instance passing all parameters
 config = Config(models=MODELS, prompt=PROMPT)
 
+# --- 3. Register common tools ---
 
-# --- 3. Custom Tools ---
-# Use the @tool decorator to give Lovelaice new atomic capabilities.
-# These are automatically detected and available to the agent.
-@config.register_tool
+# File system tools
+from lovelaice.tools.filesystem import list_dir, read_file, write_file, create_dir, delete_path
+
+config.tool(list_dir)
+config.tool(read_file)
+config.tool(write_file)
+config.tool(create_dir)
+config.tool(delete_path)
+
+
+# --- 4. Custom Tools ---
+# Use the @config.tool decorator to give Lovelaice new atomic capabilities.
+# These are automatically used in current skills when necessary,
+# and can be called manually in new skills if you define them.
+@config.tool
 async def get_today() -> str:
     """
     Returns the current date in ISO format.
@@ -80,7 +92,7 @@ async def get_today() -> str:
 # --- 4. Custom Skills ---
 # Use the @skill decorator to define specific high-level workflows.
 # These can be triggered directly via 'lovelaice --skill hello'.
-@config.register_skill
+@config.skill
 async def smalltalk(ctx: Context, engine: Engine):
     """
     A friendly smalltalk when the user just wants to chat.

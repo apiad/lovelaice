@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from functools import wraps
+import inspect
 import sys
 import importlib.util
 from pathlib import Path
@@ -7,7 +9,8 @@ from typing import Callable, Coroutine, Optional, Any
 
 from lingo import LLM, Context, Engine
 
-from lovelaice.core import Lovelaice
+from .core import Lovelaice
+from .security import SecurityManager
 
 
 def find_config_file(start_path: Path = Path(".")) -> Optional[Path]:
@@ -69,27 +72,59 @@ class Config:
         self.skills = []
         self.tools = []
         self.prompt = prompt
+        self.agent = None
 
-    def register_skill(self, func: Callable[[Context, Engine], Coroutine]):
+    def skill(self, func: Callable[[Context, Engine], Coroutine]):
         self.skills.append(func)
 
-    def register_tool(self, func: Callable):
-        self.tools.append(func)
+    def tool(self, func: Callable):
+        """
+        Decorator that injects the current Lovelaice instance ('agent')
+        into the tool and registers it with Lingo.
+        """
+        # 1. Inspect the original function signature
+        sig = inspect.signature(func)
+        params = list(sig.parameters.values())
 
-    def build(self, model: str | None, on_token=None) -> Lovelaice:
+        # 2. Filter out the 'agent' parameter for Lingo's eyes
+        # This ensures the LLM doesn't see 'agent' as an input it needs to provide
+        new_params = [p for p in params if p.name != "agent"]
+
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            # 3. Inject the 'agent' instance back into the call
+            return func(*args, agent=self.agent, **kwargs)
+
+        # 4. Modify the wrapper's signature to hide 'agent'
+        wrapper.__signature__ = sig.replace(parameters=new_params)
+
+        # 5. Register the modified wrapper as a Lingo tool
+        # This makes it available in the engine's registry
+        self.tools.append(wrapper)
+
+        return wrapper
+
+    def build(
+        self, model: str | None, on_token, security: SecurityManager
+    ) -> Lovelaice:
         if model is None:
             model = self.default_model
 
-        agent = Lovelaice(
-            llm=LLM(**self.models[model], on_token=on_token), prompt=self.prompt
+        if self.agent is not None:
+            raise TypeError("Cannot call build twice.")
+
+        self.agent = Lovelaice(
+            llm=LLM(**self.models[model], on_token=on_token),
+            prompt=self.prompt,
+            security=security,
         )
 
         # Register tools
         for tool in self.tools:
-            agent.tool(tool)
+            self.agent.tool(tool)
 
         # Register skills
         for skill in self.skills:
-            agent.skill(skill)
+            self.agent.skill(skill)
 
-        return agent
+        return self.agent
