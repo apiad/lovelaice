@@ -1,10 +1,14 @@
+import asyncio
 import inspect
 import typer
 from typing import Optional, List
 from typing_extensions import Annotated
 from pathlib import Path
+from lingo.cli import loop
 
 from dotenv import load_dotenv
+
+from .config import find_config_file, load_agent_from_config
 
 load_dotenv()
 
@@ -70,10 +74,10 @@ def main(
 
         # 1. Ask for configuration details interactively
         default_model = typer.prompt(
-            "Enter the default model name", default="gemini-2.0-flash"
+            "Enter the default model name", default="google/gemini-2.5-flash"
         )
         base_url = typer.prompt(
-            "Enter the API base URL", default="https://openrouter.io/api/v1"
+            "Enter the API base URL", default="https://openrouter.ai/api/v1"
         )
 
         # 2. Load the template source
@@ -94,17 +98,29 @@ def main(
         )
         raise typer.Exit()
 
-    # 2. Reconstruct the prompt from parts
+    config_path = find_config_file()
+
+    if not config_path:
+        typer.echo("❌ No .lovelaice.py found. Run 'lovelaice --init' first.", err=True)
+        raise typer.Exit(1)
+
+    def on_token(token: str):
+        print(token, end="", flush=True)
+
+    try:
+        agent = load_agent_from_config(config_path)
+        bot = agent.build(model=model, on_token=on_token)
+    except Exception as e:
+        typer.echo(f"❌ Failed to load agent: {e}", err=True)
+        raise typer.Exit(1)
+
+    # 2. Reconstruct prompt
     prompt = " ".join(prompt_parts) if prompt_parts else ""
 
-    # 3. Execution Logic (Mocked for now)
-    if skill:
-        typer.echo(f"🛠️ Executing skill: {skill}")
-
     if prompt:
-        typer.echo(f"🤖 Processing: {prompt}")
-    elif not skill:
-        typer.echo("Lovelaice is active. Use --help for options or type a task.")
+        asyncio.run(bot.chat(prompt))
+    else:
+        loop(bot)
 
 
 if __name__ == "__main__":

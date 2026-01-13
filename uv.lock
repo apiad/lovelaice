@@ -146,15 +146,15 @@ wheels = [
 
 [[package]]
 name = "lingo-ai"
-version = "1.0rc1"
+version = "1.0rc3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "openai" },
     { name = "pydantic" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/47/94/f0045449f3b93a9cda8c7b065a0cfa411d1e811244ba22293c825ab6bcc2/lingo_ai-1.0rc1.tar.gz", hash = "sha256:c17893f6495261ae8cac4db02dcd32c46f3031890273b88abff53f691d383fef", size = 63310 }
+sdist = { url = "https://files.pythonhosted.org/packages/24/c6/139fa898e3ec826c03004023752cdd2f13bc8f4d5e4e9d47080c201f33c1/lingo_ai-1.0rc3.tar.gz", hash = "sha256:42f50cc2ec87fb9df1733d1b5a63e01f8c843ab381de8bb90c30e8a22186e845", size = 63060 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/17/a6/1374b4e05d3cf15a89650f4958c6d86221bd7d74fe3570a34e50eb02fd25/lingo_ai-1.0rc1-py3-none-any.whl", hash = "sha256:72b31327a6f9f2fd27c0e497bf0dfaea516001d6a9a0687684adafae45281df0", size = 24404 },
+    { url = "https://files.pythonhosted.org/packages/ae/35/c834dc6dcc9411561f090cce8ca9aff534966d2eb48c686be7a4b166806c/lingo_ai-1.0rc3-py3-none-any.whl", hash = "sha256:f2f4c8e1532632691999cc0aa58c8df624fd629affd2dc71322e43fa2685b68c", size = 24119 },
 ]
 
 [[package]]
@@ -163,13 +163,15 @@ version = "0.5.0"
 source = { editable = "." }
 dependencies = [
     { name = "lingo-ai" },
+    { name = "purely" },
     { name = "python-dotenv" },
     { name = "typer" },
 ]
 
 [package.metadata]
 requires-dist = [
-    { name = "lingo-ai", specifier = "==1.0rc1" },
+    { name = "lingo-ai", specifier = "==1.0rc3" },
+    { name = "purely", specifier = ">=0.4.2" },
     { name = "python-dotenv", specifier = ">=1.2.1" },
     { name = "typer", specifier = ">=0.21.1" },
 ]
@@ -212,6 +214,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/94/f4/4690ecb5d70023ce6bfcfeabfe717020f654bde59a775058ec6ac4692463/openai-2.15.0.tar.gz", hash = "sha256:42eb8cbb407d84770633f31bf727d4ffb4138711c670565a41663d9439174fba", size = 627383 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/b5/df/c306f7375d42bafb379934c2df4c2fa3964656c8c782bac75ee10c102818/openai-2.15.0-py3-none-any.whl", hash = "sha256:6ae23b932cd7230f7244e52954daa6602716d6b9bf235401a107af731baea6c3", size = 1067879 },
+]
+
+[[package]]
+name = "purely"
+version = "0.4.2"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/a4/a9/82073b299b9b5334fa2ba8bf44c34f42ec88fedebe1722910dc53af40386/purely-0.4.2.tar.gz", hash = "sha256:62674d62088d306d8b092269207df58cc99c8837f7372ce4ff54c4b249fa8fd4", size = 25975 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/b3/1d/a8b9d415a273ffefba1b8e80fabb49f604ccd0fa4557c399db97b5176a46/purely-0.4.2-py3-none-any.whl", hash = "sha256:a310074ff3ffa85103a466707203112c00fb25f16109448ff0759465b972f4a6", size = 8401 },
 ]
 
 [[package]]

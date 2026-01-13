@@ -1,24 +1,13 @@
-from typing import Callable, Coroutine
-from lingo import LLM, Context, Engine, Lingo
+from __future__ import annotations
+
+from lingo import LLM, Lingo
 
 
-class Lovelaice:
-    def __init__(self, models):
-        self.models = models
-        self.default_model = list(models)[0]
-        self.skills = []
-        self.tools = []
-
-    def skill(self, func: Callable[[Context, Engine], Coroutine]):
-        self.skills.append(func)
-
-    def tool(self, func: Callable):
-        self.tools.append(func)
-
-    def build(self, model) -> Lingo:
-        if model is None:
-            model = self.default_model
-
-        return Lingo(
-            llm=LLM(**self.models[model])
+class Lovelaice(Lingo):
+    def __init__(self, llm: LLM, prompt: str):
+        super().__init__(
+            name="Lovelaice",
+            description="An AI engineering assistant.",
+            llm=llm,
+            system_prompt=prompt,
         )

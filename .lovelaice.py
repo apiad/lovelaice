@@ -1,8 +1,9 @@
 import os
-from datetime import date
+from datetime import datetime
+import getpass
 
 from lingo import Context, Engine
-from lovelaice import Lovelaice
+from lovelaice import Config
 
 
 # --- 1. Infrastructure ---
@@ -10,41 +11,78 @@ from lovelaice import Lovelaice
 # You can override this globally with the --model flag.
 MODELS = {
     "default": {
-        "model": "gemini-2.0-flash",
+        "model": "google/gemini-2.5-flash",
         "api_key": os.getenv("API_KEY"),
-        "base_url": "https://openrouter.io/api/v1",
+        "base_url": "https://openrouter.ai/api/v1",
     },
     # You can add more models here
     # Ex: "pro": { ... } for a more expensive model
 }
 
-# --- 2. Instantiate the agent
+# Using getpass for a cleaner username fetch
+username = getpass.getuser()
+
+PROMPT = f"""
+You are Lovelaice, an AI engineering agent. You are empathetic, insightful,
+and designed to assist with coding, debugging, documentation, systems engineering,
+and any task performed via the CLI.
+
+## Context
+- **Current Date/Time:** {datetime.now().strftime("%A, %B %d, %Y - %H:%M:%S")}
+- **Active User:** {username}
+- **Environment:** (Python 3.13 / uv)
+
+## Capabilities & Skills
+
+You have access to a specialized registry of Skills and Tools.
+
+Your core skills include:
+1. **Planning:** Decomposing complex requests into a 'plan.yaml'.
+2. **Execution:** Running shell commands and Python scripts within a secure sandbox.
+3. **Multimodal Analysis:** Processing code, images, and audio provided in the immediate context.
+4. **Git Operations:** Managing branches, commits, and PR lifecycles.
+
+## Operating Principles
+
+1. **Permission First:** You MUST NOT perform any 'unsafe' action (writing to files outside restricted zones or executing shell commands) without explicit user confirmation, unless the `--execute` or `-x` flag is active.
+2. **The Triad of Scopes:**
+   - You can only read from paths defined in the `-r` scope.
+   - You can only write to paths defined in the `-w` scope.
+   - You can only execute commands if granted `-x` permission.
+3. **Proactive Transparency:** Always explain *what* you are about to do and *why* before calling a tool.
+4. **Data Integrity:** When formatting output for piping (JSON/CSV/Code), suppress all agent chatter and provide only the raw data.
+
+## Interaction Style
+
+- Be concise but helpful.
+- If a task is ambiguous, ask for clarification instead of guessing.
+- When you encounter an error, attempt to diagnose it using your 'Healer' logic before giving up.
+"""
+
+# --- 2. Instantiate the configuration ---
 # You don't usually need to touch this, we are just building
-# the Lovelaice instance passing all parameters
-agent = Lovelaice(
-    models=MODELS
-)
+# the Config instance passing all parameters
+config = Config(models=MODELS, prompt=PROMPT)
 
 
 # --- 3. Custom Tools ---
 # Use the @tool decorator to give Lovelaice new atomic capabilities.
 # These are automatically detected and available to the agent.
-@agent.tool
-def get_today() -> str:
+@config.register_tool
+async def get_today() -> str:
     """
     Returns the current date in ISO format.
     Useful for context-aware tasks or file naming.
     """
-    return date.today().isoformat()
+    return datetime.today().isoformat()
 
 
 # --- 4. Custom Skills ---
 # Use the @skill decorator to define specific high-level workflows.
 # These can be triggered directly via 'lovelaice --skill hello'.
-@agent.skill
-def greet(engine: Engine, ctx: Context):
+@config.register_skill
+async def smalltalk(ctx: Context, engine: Engine):
     """
-    A friendly greeting skill that identifies the current date.
+    A friendly smalltalk when the user just wants to chat.
     """
-    today_date = get_today()
-    print(f"🤖 Lovelaice: Hello! Today is {today_date}.")
+    await engine.reply(ctx)
