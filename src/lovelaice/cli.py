@@ -1,4 +1,6 @@
 import asyncio
+from datetime import datetime
+import getpass
 import inspect
 import typer
 from typing import Optional, List
@@ -6,9 +8,16 @@ from typing_extensions import Annotated
 from pathlib import Path
 from lingo.cli import loop
 
+from rich.prompt import Prompt
+from rich.console import Console
+from rich.panel import Panel
+from rich.live import Live
+from rich.markdown import Markdown
+
 from dotenv import load_dotenv
 
-from .config import find_config_file, load_agent_from_config
+from .config import Config, find_config_file, load_agent_from_config
+from .core import Lovelaice
 
 load_dotenv()
 
@@ -17,6 +26,8 @@ app = typer.Typer(
     help="An extensible AI agent for your terminal",
     no_args_is_help=False,
 )
+
+console = Console()
 
 
 @app.callback(invoke_without_command=True)
@@ -108,8 +119,8 @@ def main(
         print(token, end="", flush=True)
 
     try:
-        agent = load_agent_from_config(config_path)
-        bot = agent.build(model=model, on_token=on_token)
+        config = load_agent_from_config(config_path)
+        bot = config.build(model=model, on_token=on_token)
     except Exception as e:
         typer.echo(f"❌ Failed to load agent: {e}", err=True)
         raise typer.Exit(1)
@@ -118,9 +129,112 @@ def main(
     prompt = " ".join(prompt_parts) if prompt_parts else ""
 
     if prompt:
-        asyncio.run(bot.chat(prompt))
+        response_text = ""
+
+        with Live(console=console, refresh_per_second=10) as live:
+
+            def on_token(token: str):
+                nonlocal response_text
+                response_text += token
+                # Update the panel content with rendered Markdown
+                live.update(
+                    Panel(
+                        Markdown(response_text),
+                        title="[bold blue]Lovelaice[/]",
+                        border_style="blue",
+                        expand=False,
+                    )
+                )
+
+            try:
+                config = load_agent_from_config(config_path)
+                # Pass our custom system prompt and the token callback
+                bot = config.build(model=model, on_token=on_token)
+
+                asyncio.run(bot.chat(prompt))
+            except Exception as e:
+                console.print(f"[bold red]❌ Error:[/] {e}")
+                raise typer.Exit(1)
     else:
-        loop(bot)
+        # Interactive mode logic...
+        try:
+            config = load_agent_from_config(config_path)
+            asyncio.run(chat_loop(model, config))
+        except Exception as e:
+            console.print(f"[bold red]❌ Error:[/] {e}")
+            raise typer.Exit(1)
+
+
+class LiveChat:
+    def __init__(self) -> None:
+        self.response = ""
+        self.live: Live = None
+
+    def attach(self, live: Live):
+        self.response = ""
+        self.live = live
+
+    def update(self, token):
+        self.response += token
+        self.live.update(
+            Panel(
+                Markdown(self.response),
+                title="[bold blue]Lovelaice[/]",
+                border_style="blue",
+                expand=False,
+            )
+        )
+
+
+async def chat_loop(model: str | None, config: Config):
+    """
+    A stateful chat loop that renders user and assistant messages
+    using Rich panels.
+    """
+    username = getpass.getuser()
+    console.print(
+        Panel(
+            Markdown(
+                f"Today is **{datetime.now().strftime('%A, %B %d')}**. Type `exit` or `quit` to stop."
+            ),
+            title="[bold]Lovelaice Session[/]",
+            border_style="bright_black",
+        )
+    )
+
+    console.print()
+
+    chat = LiveChat()
+
+    def on_token(token: str):
+        chat.update(token)
+
+    bot = config.build(model, on_token)
+
+    while True:
+        # 1. Get User Input
+        try:
+            user_input = Prompt.ask(f"[bold green]{username}[/]")
+        except EOFError:  # Handle Ctrl+D
+            break
+
+        if user_input.lower() in ["exit", "quit"]:
+            break
+
+        # 2. Render Assistant Bubble and Stream Tokens
+        console.print()
+
+        with Live(
+            console=console, refresh_per_second=10, vertical_overflow="visible"
+        ) as live:
+            chat.attach(live)
+
+            try:
+                await bot.chat(user_input)
+            except Exception as e:
+                console.print(f"[bold red]❌ Interaction Error:[/] {e}")
+
+        console.print()
 
 
 if __name__ == "__main__":

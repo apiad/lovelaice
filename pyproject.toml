@@ -11,6 +11,7 @@ dependencies = [
     "lingo-ai==1.0rc3",
     "purely>=0.4.2",
     "python-dotenv>=1.2.1",
+    "rich>=14.2.0",
     "typer>=0.21.1",
 ]
 

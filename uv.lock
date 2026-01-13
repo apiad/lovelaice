@@ -165,6 +165,7 @@ dependencies = [
     { name = "lingo-ai" },
     { name = "purely" },
     { name = "python-dotenv" },
+    { name = "rich" },
     { name = "typer" },
 ]
 
@@ -173,6 +174,7 @@ requires-dist = [
     { name = "lingo-ai", specifier = "==1.0rc3" },
     { name = "purely", specifier = ">=0.4.2" },
     { name = "python-dotenv", specifier = ">=1.2.1" },
+    { name = "rich", specifier = ">=14.2.0" },
     { name = "typer", specifier = ">=0.21.1" },
 ]
 
