@@ -63,8 +63,8 @@ def main(
         List[Path], typer.Option("--write", "-w", help="Paths allowed for writing")
     ] = [],
     execute: Annotated[
-        bool, typer.Option("--execute", "-x", help="Allow shell command execution")
-    ] = False,
+        List[str], typer.Option("--execute", "-x", help="Allowed shell commands, use * for all.")
+    ] = [],
     # --- Scoping & Formatting ---
     input_files: Annotated[
         List[Path], typer.Option("--input", "-i", help="JIT Priority files")

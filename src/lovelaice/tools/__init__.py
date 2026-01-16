@@ -35,4 +35,3 @@ async def confirm_action(tool_name: str, args: dict, llm: LLM) -> bool:
                 f"exactly what the tool '{tool_name}' will do with these arguments: {args}."
             )
             response = await llm.chat([Message.user(explanation_query)])
-            console.print(f"\n[italic cyan]📖 Explanation:[/] {response.content}\n")
