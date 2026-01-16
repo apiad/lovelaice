@@ -6,11 +6,11 @@ class SecurityManager:
         self,
         read_paths: List[Path],
         write_paths: List[Path],
-        execute: Union[bool, List[str]] = False
+        allow_execute: Union[bool, List[str]] = False
     ):
         self.read_paths = [p.resolve() for p in read_paths]
         self.write_paths = [p.resolve() for p in write_paths]
-        self.execute = execute
+        self.allow_execute = allow_execute
 
     def can_read(self, path: str) -> bool:
         target = Path(path).resolve()
@@ -24,10 +24,10 @@ class SecurityManager:
         """
         Checks if a command is allowed based on the whitelist or global flag.
         """
-        if self.execute is True:
+        if self.allow_execute is True:
             return True
-        if not self.execute:
+        if not self.allow_execute:
             return False
 
         # Whitelist check: extract the base command (e.g., 'git' from 'git commit')
-        return command in self.execute
+        return command in self.allow_execute

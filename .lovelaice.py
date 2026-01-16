@@ -75,27 +75,21 @@ config.tool(write_file)
 config.tool(create_dir)
 config.tool(delete_path)
 
+# Bash-related tools
+from lovelaice.tools.shell import execute_command
 
-# --- 4. Custom Tools ---
-# Use the @config.tool decorator to give Lovelaice new atomic capabilities.
-# These are automatically used in current skills when necessary,
-# and can be called manually in new skills if you define them.
-@config.tool
-async def get_today() -> str:
-    """
-    Returns the current date in ISO format.
-    Useful for context-aware tasks or file naming.
-    """
-    return datetime.today().isoformat()
+config.tool(execute_command)
 
+# --- 4. Register common skills ---
 
-# --- 4. Custom Skills ---
-# Use the @skill decorator to define specific high-level workflows.
-# These can be triggered directly via 'lovelaice --skill hello'.
-@config.skill
-async def smalltalk(ctx: Context, engine: Engine):
-    """
-    A friendly smalltalk when the user just wants to chat.
-    """
-    msg = await engine.reply(ctx)
-    ctx.append(msg)
+from lovelaice.skills.basic import chat, basic
+
+# Register skills with the agent
+config.skill(chat)
+config.skill(basic)
+
+# --- 5. Custom tools and skills
+
+# Use @config.tool or @config.skill to add your own tools and skills here.
+
+# Refer to the docs for help <https://apiad.net/lovelaice>

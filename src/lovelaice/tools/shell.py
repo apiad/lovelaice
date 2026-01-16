@@ -17,7 +17,7 @@ async def execute_command(
     """
     # 1. Security Check: Validate the base command against the whitelist
     if not security.can_execute(command):
-        allowed = security.execute if isinstance(security.execute, list) else "all"
+        allowed = security.allow_execute if isinstance(security.allow_execute, list) else "all"
         return (
             f"❌ Permission Denied: The command '{command}' is not whitelisted.\n"
             f"Allowed commands: {allowed}"

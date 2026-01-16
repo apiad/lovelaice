@@ -76,33 +76,11 @@ class Config:
 
     def skill(self, func: Callable[[Context, Engine], Coroutine]):
         self.skills.append(func)
+        return func
 
     def tool(self, func: Callable):
-        """
-        Decorator that injects the current Lovelaice instance ('agent')
-        into the tool and registers it with Lingo.
-        """
-        # 1. Inspect the original function signature
-        sig = inspect.signature(func)
-        params = list(sig.parameters.values())
-
-        # 2. Filter out the 'agent' parameter for Lingo's eyes
-        # This ensures the LLM doesn't see 'agent' as an input it needs to provide
-        new_params = [p for p in params if p.name != "agent"]
-
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            # 3. Inject the 'agent' instance back into the call
-            return func(*args, agent=self.agent, **kwargs)
-
-        # 4. Modify the wrapper's signature to hide 'agent'
-        wrapper.__signature__ = sig.replace(parameters=new_params)
-
-        # 5. Register the modified wrapper as a Lingo tool
-        # This makes it available in the engine's registry
-        self.tools.append(wrapper)
-
-        return wrapper
+        self.tools.append(func)
+        return func
 
     def build(
         self, model: str | None, on_token, security: SecurityManager

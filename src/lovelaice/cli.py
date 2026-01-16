@@ -153,23 +153,15 @@ def main(
                     )
                 )
 
-            try:
-                config = load_agent_from_config(config_path)
-                # Pass our custom system prompt and the token callback
-                bot = config.build(model=model, on_token=on_token, security=security)
+            config = load_agent_from_config(config_path)
+            # Pass our custom system prompt and the token callback
+            bot = config.build(model=model, on_token=on_token, security=security)
 
-                asyncio.run(bot.chat(prompt))
-            except Exception as e:
-                console.print(f"[bold red]❌ Error:[/] {e}")
-                raise typer.Exit(1)
+            asyncio.run(bot.chat(prompt))
     else:
         # Interactive mode logic...
-        try:
-            config = load_agent_from_config(config_path)
-            asyncio.run(chat_loop(model, config, security))
-        except Exception as e:
-            console.print(f"[bold red]❌ Error:[/] {e}")
-            raise typer.Exit(1)
+        config = load_agent_from_config(config_path)
+        asyncio.run(chat_loop(model, config, security))
 
 
 class LiveChat:
@@ -235,11 +227,7 @@ async def chat_loop(model: str | None, config: Config, security: SecurityManager
             console=console, refresh_per_second=10, vertical_overflow="visible"
         ) as live:
             chat.attach(live)
-
-            try:
-                await bot.chat(user_input)
-            except Exception as e:
-                console.print(f"[bold red]❌ Interaction Error:[/] {e}")
+            await bot.chat(user_input)
 
         console.print()
 
