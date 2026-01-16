@@ -14,3 +14,5 @@ class Lovelaice(Lingo):
             system_prompt=prompt,
         )
         self.security = security
+
+        self.registry.register(self.security)

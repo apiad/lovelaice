@@ -1,15 +1,18 @@
 import os
-import shutil
 from pathlib import Path
 from typing import List, Union
-from ..core import Lovelaice
+
+from lingo import LLM
+from lovelaice.security import SecurityManager
+from lovelaice.tools import confirm_action
+from purely import depends
 
 
-def list_dir(path: str, agent: Lovelaice) -> Union[List[str], str]:
+async def list_dir(path: str, security = depends(SecurityManager)) -> Union[List[str], str]:
     """
     Lists the contents of a directory.
     """
-    if not agent.security.can_read(path):
+    if not security.can_read(path):
         return f"Permission Denied: Cannot read directory at '{path}'."
 
     try:
@@ -18,11 +21,11 @@ def list_dir(path: str, agent: Lovelaice) -> Union[List[str], str]:
         return f"Error listing directory: {str(e)}"
 
 
-def read_file(path: str, agent: Lovelaice) -> str:
+async def read_file(path: str, security = depends(SecurityManager)) -> str:
     """
     Reads the content of a file from the specified path.
     """
-    if not agent.security.can_read(path):
+    if not security.can_read(path):
         return f"Permission Denied: Cannot read file at '{path}'."
 
     try:
@@ -31,11 +34,11 @@ def read_file(path: str, agent: Lovelaice) -> str:
         return f"Error reading file: {str(e)}"
 
 
-def write_file(path: str, content: str, agent: Lovelaice) -> str:
+async def write_file(path: str, content: str, security = depends(SecurityManager)) -> str:
     """
     Writes content to a file. Overwrites if the file exists.
     """
-    if not agent.security.can_write(path):
+    if not security.can_write(path):
         return f"Permission Denied: Cannot write to file at '{path}'."
 
     try:
@@ -47,11 +50,11 @@ def write_file(path: str, content: str, agent: Lovelaice) -> str:
         return f"Error writing file: {str(e)}"
 
 
-def create_dir(path: str, agent: Lovelaice) -> str:
+async def create_dir(path: str, security = depends(SecurityManager)) -> str:
     """
     Creates a new directory and any necessary intermediate directories.
     """
-    if not agent.security.can_write(path):
+    if not security.can_write(path):
         return f"Permission Denied: Cannot create directory at '{path}'."
 
     try:
@@ -61,12 +64,15 @@ def create_dir(path: str, agent: Lovelaice) -> str:
         return f"Error creating directory: {str(e)}"
 
 
-def delete_path(path: str, agent: Lovelaice) -> str:
+async def delete_path(path: str, security = depends(SecurityManager), llm = depends(LLM)) -> str:
     """
     Deletes a file or an empty directory.
     """
-    if not agent.security.can_write(path):
+    if not security.can_write(path):
         return f"Permission Denied: Cannot delete at '{path}'."
+
+    if not await confirm_action("delete_path", dict(path=path), llm):
+        return f"User denied action: Cannot delete at '{path}'."
 
     try:
         p = Path(path)
