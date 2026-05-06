@@ -128,8 +128,21 @@ class LovelaiceApp(App):
             self.query_one("#input", Input).disabled = False
 
     async def action_cancel_or_quit(self) -> None:
-        """Filled in by Task 16. For now, quit."""
-        await self.action_quit()
+        """Single Ctrl+C cancels the current turn; double within 1s quits."""
+        import time
+        now = time.monotonic()
+        if now - self._last_ctrl_c_t < 1.0:
+            await self.action_quit()
+            return
+        self._last_ctrl_c_t = now
+
+        worker = self._current_turn
+        if worker is not None and not worker.is_finished:
+            worker.cancel()
+            transcript = self.query_one("#transcript")
+            transcript.add_error("↳ cancelled by user")
+            self.query_one("#input", Input).disabled = False
+            self._current_turn = None
 
 
 async def run_tui(config_path: Path, *, model: Optional[str]) -> None:
