@@ -4,10 +4,16 @@
 We subclass because `lingo.LLM.chat()` reads only `delta.content` and
 silently drops everything else; without subclassing, reasoning tokens
 would never reach the UI.
+
+Set ``LOVELAICE_DEBUG_STREAM=1`` to dump every streamed chunk to stderr
+— useful when a provider returns reasoning under an unexpected field
+or doesn't stream it at all.
 """
 from __future__ import annotations
 
 import inspect
+import os
+import sys
 from typing import Any, Callable
 
 from lingo import LLM, Message
@@ -70,7 +76,15 @@ class ThinkingLLM(LLM):
             await resp
 
     async def chat(self, messages: list[Message], **kwargs) -> Message:
-        """Same as lingo.LLM.chat(), but also routes `delta.reasoning` to a separate sink."""
+        """Same as lingo.LLM.chat(), but also routes reasoning deltas to a separate sink.
+
+        Reasoning is read from any of these fields, in priority order:
+        ``delta.reasoning`` (OpenRouter unified, OpenAI o-series),
+        ``delta.reasoning_content`` (some Anthropic/DeepSeek paths), or
+        ``delta.thoughts`` (some Gemini paths). The first non-empty one
+        wins per chunk.
+        """
+        debug = bool(os.environ.get("LOVELAICE_DEBUG_STREAM"))
         content_chunks: list[str] = []
         usage: Usage | None = None
         api_messages = [msg.model_dump() for msg in messages]
@@ -82,6 +96,9 @@ class ThinkingLLM(LLM):
             stream_options=dict(include_usage=True),
             **(self.extra_kwargs | kwargs),
         ):
+            if debug:
+                print(f"[lovelaice-debug] chunk: {chunk}", file=sys.stderr, flush=True)
+
             if getattr(chunk, "usage", None):
                 usage = Usage(
                     prompt_tokens=chunk.usage.prompt_tokens,
@@ -93,7 +110,7 @@ class ThinkingLLM(LLM):
                 continue
             delta = chunk.choices[0].delta
 
-            reasoning = getattr(delta, "reasoning", None)
+            reasoning = _read_reasoning(delta)
             if reasoning:
                 await self.on_reasoning_token(reasoning)
 
@@ -105,3 +122,22 @@ class ThinkingLLM(LLM):
         result = Message.assistant("".join(content_chunks), usage=usage)
         await self.on_message(result)
         return result
+
+
+def _read_reasoning(delta: Any) -> str | None:
+    """Pull a streamed reasoning fragment from a delta, handling provider variance.
+
+    OpenAI SDK preserves unknown fields via ``model_extra``; we check both
+    the typed attribute path and the extras dict so we catch fields the
+    SDK didn't model directly.
+    """
+    for name in ("reasoning", "reasoning_content", "thoughts"):
+        value = getattr(delta, name, None)
+        if value:
+            return value
+    extra = getattr(delta, "model_extra", None) or {}
+    for name in ("reasoning", "reasoning_content", "thoughts"):
+        value = extra.get(name)
+        if value:
+            return value
+    return None

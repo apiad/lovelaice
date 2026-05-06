@@ -5,7 +5,35 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from lovelaice.thinking import ThinkingLLM, _resolve_reasoning_kwargs, build_llm
+from types import SimpleNamespace
+
+from lovelaice.thinking import ThinkingLLM, _read_reasoning, _resolve_reasoning_kwargs, build_llm
+
+
+def test_read_reasoning_prefers_reasoning_field() -> None:
+    delta = SimpleNamespace(reasoning="A", reasoning_content="B", thoughts="C")
+    assert _read_reasoning(delta) == "A"
+
+
+def test_read_reasoning_falls_back_to_reasoning_content() -> None:
+    delta = SimpleNamespace(reasoning=None, reasoning_content="B", thoughts="C")
+    assert _read_reasoning(delta) == "B"
+
+
+def test_read_reasoning_falls_back_to_thoughts() -> None:
+    delta = SimpleNamespace(reasoning=None, reasoning_content=None, thoughts="C")
+    assert _read_reasoning(delta) == "C"
+
+
+def test_read_reasoning_returns_none_when_absent() -> None:
+    delta = SimpleNamespace()
+    assert _read_reasoning(delta) is None
+
+
+def test_read_reasoning_reads_from_model_extra() -> None:
+    """OpenAI SDK preserves unknown fields in `model_extra` for some shapes."""
+    delta = SimpleNamespace(reasoning=None, model_extra={"reasoning": "from extras"})
+    assert _read_reasoning(delta) == "from extras"
 
 
 def test_resolve_reasoning_kwargs_for_effort_levels() -> None:
@@ -77,13 +105,15 @@ async def test_thinking_llm_routes_reasoning_chunks() -> None:
         reasoning={"effort": "high"},
     )
 
+    from types import SimpleNamespace
+
     def make_chunk(content=None, reasoning=None, usage=None):
-        delta = MagicMock()
-        delta.content = content
-        delta.reasoning = reasoning
-        choice = MagicMock(); choice.delta = delta
-        chunk = MagicMock(); chunk.choices = [choice]; chunk.usage = usage
-        return chunk
+        # Plain namespace so getattr returns None for unset fields
+        # (MagicMock would auto-create attributes and confuse the
+        # multi-field reasoning reader).
+        delta = SimpleNamespace(content=content, reasoning=reasoning)
+        choice = SimpleNamespace(delta=delta)
+        return SimpleNamespace(choices=[choice], usage=usage)
 
     chunks = [
         make_chunk(reasoning="thinking..."),
