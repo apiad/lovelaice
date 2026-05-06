@@ -35,11 +35,24 @@ async def plan_then_execute(context, engine):
     context.append(final)
 ```
 
+## Tool-result injection
+
+Tool observations go into the context as **system messages**, not
+`Message.tool(...)`. Lingo extracts tool parameters via structured
+prompting (not the OpenAI tool-use protocol), so a `tool`-role message
+has no prior tool-call to anchor against and many providers reject
+it. The `react` command formats the observation as:
+
+```python
+context.append(Message.system(f"[tool {result.tool} result]\n{result.result}"))
+# or, on failure:
+context.append(Message.system(f"[tool {result.tool} failed]\n{result.error}"))
+```
+
 ## Anti-patterns
 
 - Calling `engine.act` — that does not exist on `Engine`. Use
   `equip(...)` then `invoke(...)`.
-- Using `Message.tool(result.model_dump())` — `Message.tool` requires
-  string content; use `Message.tool(result.model_dump_json())`.
+- Using `Message.tool(...)` for observations — see the section above.
 - Adding side effects to `before` hooks that the model can see — they
   go into the system prompt and bloat context.

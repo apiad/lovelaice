@@ -44,7 +44,8 @@ async def test_react_uses_equip_then_invoke_when_not_done() -> None:
 
     engine.equip.assert_awaited_once_with(context)
     engine.invoke.assert_awaited_once_with(context, fake_tool)
-    assert any(m.role == "tool" for m in context.messages)
+    sys_msgs = [m for m in context.messages if m.role == "system"]
+    assert any("[tool bash result]" in str(m.content) and "hello" in str(m.content) for m in sys_msgs)
 
 
 @pytest.mark.asyncio
@@ -60,6 +61,7 @@ async def test_react_handles_invoke_error() -> None:
 
     await react(context, engine)
 
-    tool_msgs = [m for m in context.messages if m.role == "tool"]
-    assert len(tool_msgs) == 1
-    assert "boom" in str(tool_msgs[0].content)
+    sys_msgs = [m for m in context.messages if m.role == "system"]
+    failed_msgs = [m for m in sys_msgs if "[tool bash failed]" in str(m.content)]
+    assert len(failed_msgs) == 1
+    assert "boom" in str(failed_msgs[0].content)

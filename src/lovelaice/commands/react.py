@@ -46,7 +46,11 @@ async def react(context: Context, engine: Engine, *, max_steps: int = 20) -> Non
 
         tool = await engine.equip(context)
         result = await engine.invoke(context, tool)
-        context.append(Message.tool(result.model_dump_json()))
+        if result.error:
+            observation = f"[tool {result.tool} failed]\n{result.error}"
+        else:
+            observation = f"[tool {result.tool} result]\n{result.result}"
+        context.append(Message.system(observation))
 
         if on_tool_call is not None:
             on_tool_call(result)
