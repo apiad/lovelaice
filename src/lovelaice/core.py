@@ -1,90 +1,58 @@
 from __future__ import annotations
-from datetime import datetime
 import getpass
 import os
+from datetime import datetime
 
 from lingo import LLM, Context, Engine, Lingo, Message
 
-from .security import SecurityManager
-
 
 class Lovelaice(Lingo):
-    def __init__(self, llm: LLM, prompt: str, security: SecurityManager):
+    """
+    The Lovelaice agent: a thin Lingo subclass that injects environment
+    awareness into the system prompt before each turn.
+    """
+
+    def __init__(self, llm: LLM, prompt: str):
         super().__init__(
             name="Lovelaice",
-            description="An AI engineering assistant.",
+            description="A local-first coding agent.",
             llm=llm,
             system_prompt=prompt,
         )
-        self.security = security
-
-        self.registry.register(self.security)
-
         self.before(self.explain_context)
 
     async def explain_context(self, context: Context, engine: Engine):
         """
-        Injects a detailed system message into the context before execution,
-        outlining the current environment, tools, and security constraints.
+        Prepends a fresh system message describing the current environment
+        and the tools / commands the agent has access to. Re-emitted on
+        every turn so the agent always sees up-to-date capabilities.
         """
-        # 1. Gather environment info
-        cwd = os.getcwd()
+        commands = "\n".join(
+            f"  - {c.name}: {c.description}" for c in self.skills
+        ) or "  - (none)"
+        tools = "\n".join(
+            f"  - {t.name}: {t.description}" for t in self.tools
+        ) or "  - (none)"
 
-        # 2. Format security constraints
-        sec = self.security
-        read_paths = "\n".join([f"  - {p}" for p in sec.read_paths]) or "  - None"
-        write_paths = "\n".join([f"  - {p}" for p in sec.write_paths]) or "  - None"
+        status = f"""
+# Environment
 
-        if sec.allow_execute is True:
-            exec_info = "All shell commands are allowed (subject to user confirmation)."
-        elif isinstance(sec.allow_execute, list):
-            exec_info = f"Whitelisted commands: {', '.join(sec.allow_execute)}"
-        else:
-            exec_info = "Shell execution is strictly disabled."
+- Time: {datetime.now().strftime("%A, %Y-%m-%d %H:%M:%S")}
+- User: {getpass.getuser()}
+- Working directory: {os.getcwd()}
 
-        # 3. List registered Skills (complex workflows)
-        # engine.skills is a dictionary mapping skill names to their functions
-        skills_list = "\n".join(
-            [f"  - {flow.name}: {flow.description}" for flow in self.skills]
-        )
+# Registered commands
 
-        # 4. List registered tools
-        # engine.tools is a dictionary of Tool objects
-        tools_list = "\n".join(
-            [f"  - {tool.name}: {tool.description}" for tool in self.tools]
-        )
+{commands}
 
-        # Using getpass for a cleaner username fetch
-        username = getpass.getuser()
+# Registered tools
 
-        # 5. Construct the prompt
-        status_prompt = f"""
-# SYSTEM STATUS & CAPABILITIES
+{tools}
 
-- **Current Date/Time:** {datetime.now().strftime("%A, %B %d, %Y - %H:%M:%S")}
-- **Active User:** {username}
+You operate in YOLO mode: tool calls execute immediately without
+confirmation. Be deliberate about destructive actions (file writes,
+shell commands that modify state) — read before you write, and
+prefer surgical edits over full rewrites.
+""".strip()
 
-**Current Working Directory:** `{cwd}`
-
-## 🛡️ Security Configuration
-- **Read Access:** You can read from:
-{read_paths}
-- **Write Access:** You can write to:
-{write_paths}
-- **Execution:** {exec_info}
-
-## 🧩 Registered Skills (High-Level Workflows)
-Use these when the user requests a specific mode of operation:
-{skills_list}
-
-## 🔧 Registered Tools (Atomic Actions)
-You can use these tools to interact with the system:
-{tools_list}
-
-**Operational Constraints:**
-1. All destructive or external actions (write, delete, execute) require user confirmation (y/n/e).
-2. If the user asks for 'explain' (e), provide a clear semantic explanation of the tool's intent.
-3. Verify paths against allowed zones before attempting any action.
-"""
-        # Append as a system message so it's fresh in the context
-        context.append(Message.system(status_prompt))
+        context.append(Message.system(status))

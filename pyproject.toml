@@ -1,7 +1,7 @@
 [project]
 name = "lovelaice"
-version = "0.6.0"
-description = "An open-source, extensible AI agent for your terminal."
+version = "0.7.0"
+description = "A local-first coding agent for the terminal, with Python-defined commands and tools."
 readme = "README.md"
 authors = [
     { name = "Alejandro Piad", email = "apiad@apiad.net" }
@@ -9,7 +9,6 @@ authors = [
 requires-python = ">=3.13"
 dependencies = [
     "lingo-ai==1.0",
-    "purely>=0.4.2",
     "python-dotenv>=1.2.1",
     "rich>=14.2.0",
     "typer>=0.21.1",

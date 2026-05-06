@@ -182,11 +182,10 @@ wheels = [
 
 [[package]]
 name = "lovelaice"
-version = "0.6.0"
+version = "0.7.0"
 source = { editable = "." }
 dependencies = [
     { name = "lingo-ai" },
-    { name = "purely" },
     { name = "python-dotenv" },
     { name = "rich" },
     { name = "typer" },
@@ -195,7 +194,6 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "lingo-ai", specifier = "==1.0" },
-    { name = "purely", specifier = ">=0.4.2" },
     { name = "python-dotenv", specifier = ">=1.2.1" },
     { name = "rich", specifier = ">=14.2.0" },
     { name = "typer", specifier = ">=0.21.1" },
