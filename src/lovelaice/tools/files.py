@@ -49,9 +49,9 @@ async def edit(path: str, old: str, new: str) -> str:
     return f"edited {path}"
 
 
-async def list_dir(path: str = ".") -> list[str]:
+async def list_(path: str = ".") -> list[str]:
     """
-    List the entries in a directory. Returns a flat list of names
+    List the entries in a directory. Returns a flat, sorted list of names
     (not recursive). Use `bash("find ...")` for recursive listings.
     """
     return sorted(os.listdir(path))
