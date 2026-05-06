@@ -22,35 +22,34 @@ DONE_INSTRUCTION = (
 )
 
 
-async def react(context: Context, engine: Engine, *, max_steps: int = 20):
+async def react(context: Context, engine: Engine, *, max_steps: int = 20) -> None:
     """
-    Generalist ReAct loop: think, act, observe, repeat until done.
+    Generalist ReAct loop: decide-equip-invoke until the LLM signals done.
 
-    On each step the LLM decides whether the task is complete; if not,
-    it picks a registered tool, generates parameters, and invokes it.
-    The result is appended to the context as an observation. The loop
-    exits when the LLM signals completion or the step budget is hit,
-    after which a final natural-language reply is produced.
+    Each iteration:
+      1. Ask the LLM whether the user's request is fully resolved.
+      2. If yes, exit the loop.
+      3. Otherwise, equip a tool (LLM picks from the registered set),
+         invoke it (LLM fills in parameters), and append the ToolResult
+         as a `tool`-role message in the context.
 
-    Use this as the default agent behaviour when no more specific
-    workflow has been registered.
+    After the loop, ask the LLM for a final natural-language reply.
     """
     context.append(Message.system(REACT_HEADER))
+
+    on_tool_call = getattr(engine, "_lovelaice_on_tool_call", None)
 
     for _ in range(max_steps):
         done = await engine.decide(context, DONE_INSTRUCTION)
         if done:
             break
 
-        result = await engine.act(context)
-        if result.error:
-            context.append(
-                Message.system(f"[tool {result.tool} failed] {result.error}")
-            )
-        else:
-            context.append(
-                Message.system(f"[tool {result.tool} result]\n{result.result}")
-            )
+        tool = await engine.equip(context)
+        result = await engine.invoke(context, tool)
+        context.append(Message.tool(result.model_dump_json()))
+
+        if on_tool_call is not None:
+            on_tool_call(result)
 
     final = await engine.reply(
         context,
