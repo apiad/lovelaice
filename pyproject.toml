@@ -1,6 +1,6 @@
 [project]
 name = "lovelaice"
-version = "0.7.0"
+version = "1.0.0"
 description = "A local-first coding agent for the terminal, with Python-defined commands and tools."
 readme = "README.md"
 authors = [
@@ -12,6 +12,19 @@ dependencies = [
     "python-dotenv>=1.2.1",
     "rich>=14.2.0",
     "typer>=0.21.1",
+    "textual>=0.85",
+    "mcp>=1.2",
+    "httpx>=0.28",
+    "markdownify>=0.13",
+    "readabilipy>=0.3",
+    "pathspec>=0.12",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+    "pytest-asyncio>=0.24",
+    "pytest-mock>=3.14",
 ]
 
 [build-system]
@@ -19,4 +32,8 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project.scripts]
-lovelaice="lovelaice.cli:app"
+lovelaice = "lovelaice.cli:app"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
