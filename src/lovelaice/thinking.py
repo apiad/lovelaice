@@ -57,16 +57,26 @@ def build_llm(
 
 
 class ThinkingLLM(LLM):
-    """A `lingo.LLM` that also forwards `delta.reasoning` chunks."""
+    """A `lingo.LLM` that also forwards `delta.reasoning` chunks.
+
+    The OpenRouter ``reasoning`` body kwarg only applies to the streaming
+    chat-completions path. Lingo's structured-output helpers (decide /
+    choose / equip / invoke) call ``client.chat.completions.parse()``,
+    which rejects ``reasoning`` as an unknown kwarg. So we keep the
+    reasoning request out of ``extra_kwargs`` and inject it only inside
+    our overridden ``chat()``.
+    """
 
     def __init__(
         self,
         *args,
         on_reasoning_token: Callable[[str], Any] | None = None,
+        reasoning: dict[str, Any] | None = None,
         **kwargs,
     ):
         super().__init__(*args, **kwargs)
         self._on_reasoning_token = on_reasoning_token
+        self._reasoning = reasoning
 
     async def on_reasoning_token(self, token: str) -> None:
         if self._on_reasoning_token is None:
@@ -89,12 +99,16 @@ class ThinkingLLM(LLM):
         usage: Usage | None = None
         api_messages = [msg.model_dump() for msg in messages]
 
+        call_kwargs = {**self.extra_kwargs, **kwargs}
+        if self._reasoning is not None:
+            call_kwargs["reasoning"] = self._reasoning
+
         async for chunk in await self.client.chat.completions.create(
             model=self.model,
             messages=api_messages,
             stream=True,
             stream_options=dict(include_usage=True),
-            **(self.extra_kwargs | kwargs),
+            **call_kwargs,
         ):
             if debug:
                 print(f"[lovelaice-debug] chunk: {chunk}", file=sys.stderr, flush=True)
