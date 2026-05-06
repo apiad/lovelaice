@@ -39,7 +39,7 @@ class Lovelaice(Lingo):
 
 - Time: {datetime.now().strftime("%A, %Y-%m-%d %H:%M:%S")}
 - User: {getpass.getuser()}
-- Working directory: {os.getcwd()}
+- Workspace root (cwd): {os.getcwd()}
 
 # Registered commands
 
