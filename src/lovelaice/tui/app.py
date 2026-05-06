@@ -81,8 +81,54 @@ class LovelaiceApp(App):
         else:
             self._agent = self._build_agent()
 
+    async def on_input_submitted(self, event) -> None:
+        """User pressed Enter in the input box."""
+        text = event.value.strip()
+        if not text:
+            return
+        input_widget = self.query_one("#input", Input)
+        input_widget.value = ""
+
+        if text.startswith("/"):
+            from .slash import handle_slash
+            await handle_slash(self, text)
+            return
+
+        transcript = self.query_one("#transcript", Transcript)
+        transcript.add_user_message(text)
+        input_widget.disabled = True
+        self._current_turn = self.run_worker(self._run_turn(text), exclusive=True)
+
+    async def _run_turn(self, prompt: str) -> None:
+        """Drive one agent turn. Streaming hooks fire on the transcript."""
+        transcript = self.query_one("#transcript", Transcript)
+
+        def on_tool_call(result) -> None:
+            res_text = "" if result.result is None else str(result.result)
+            summary = res_text.splitlines()[0][:80] if res_text else ""
+            transcript.add_tool_call(
+                tool_name=result.tool,
+                summary=summary,
+                result=res_text,
+                error=result.error,
+            )
+
+        try:
+            self._agent._on_tool_call = on_tool_call
+            await self._agent.chat(prompt)
+            transcript.close_reply_block()
+            usage = getattr(self._agent.messages[-1], "usage", None)
+            if usage is not None:
+                self._cumulative_usage["prompt"] += usage.prompt_tokens
+                self._cumulative_usage["completion"] += usage.completion_tokens
+                self._cumulative_usage["total"] += usage.total_tokens
+        except Exception as e:
+            transcript.add_error(f"{type(e).__name__}: {e}")
+        finally:
+            self.query_one("#input", Input).disabled = False
+
     async def action_cancel_or_quit(self) -> None:
-        """Filled in by Task 16 (cancellation). For now, quit."""
+        """Filled in by Task 16. For now, quit."""
         await self.action_quit()
 
 
