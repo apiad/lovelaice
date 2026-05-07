@@ -29,7 +29,15 @@ class Lovelaice(Lingo):
 
     async def explain_context(self, context: Context, engine: Engine):
         """Prepend a fresh system message describing the current environment."""
-        commands = "\n".join(f"  - {c.name}: {c.description}" for c in self.skills) or "  - (none)"
+        # Skills don't expose .name/.description directly — they wrap a
+        # plain function. Pull both from the wrapped function's metadata.
+        def _skill_summary(c):
+            name = getattr(c.method, "__name__", "<command>")
+            doc = (getattr(c.method, "__doc__", None) or "").strip()
+            description = doc.splitlines()[0] if doc else ""
+            return f"  - {name}: {description}"
+
+        commands = "\n".join(_skill_summary(c) for c in self.skills) or "  - (none)"
         tools = "\n".join(f"  - {t.name}: {t.description}" for t in self.tools) or "  - (none)"
 
         status = f"""
