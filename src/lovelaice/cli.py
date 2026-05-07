@@ -38,6 +38,14 @@ def main(
         bool,
         typer.Option("--verbose", "-v", help="Show full tool output (one-shot mode)."),
     ] = False,
+    plain: Annotated[
+        bool,
+        typer.Option("--plain", help="Plain streaming text. Content → stdout, reasoning → stderr. No Rich."),
+    ] = False,
+    json_output: Annotated[
+        bool,
+        typer.Option("--json", help="NDJSON event stream on stdout (reasoning, content, done, error)."),
+    ] = False,
 ):
     """
     Lovelaice — a sovereign coding agent for the terminal.
@@ -66,8 +74,19 @@ def main(
     prompt = " ".join(prompt_parts) if prompt_parts else ""
 
     if prompt:
+        if plain and json_output:
+            typer.echo("--plain and --json are mutually exclusive.", err=True)
+            raise typer.Exit(1)
+        output = "json" if json_output else ("plain" if plain else "rich")
+
         from .oneshot import run_oneshot
-        rc = asyncio.run(run_oneshot(config_path, model=model, prompt=prompt, verbose=verbose))
+        rc = asyncio.run(run_oneshot(
+            config_path,
+            model=model,
+            prompt=prompt,
+            verbose=verbose,
+            output=output,
+        ))
         raise typer.Exit(rc)
     else:
         from .tui.app import run_tui

@@ -1,16 +1,25 @@
-"""One-shot mode: stream the agent's working transcript to stdout via Rich,
-or emit just the final reply when stdout is piped.
+"""One-shot mode: stream a single agentic turn to stdout/stderr in one
+of three output formats:
 
-When --verbose is passed, full tool result bodies are rendered. Without
-it, tool calls render as one-line summaries only — the agent's final
-reply is the user-facing payload.
+- ``rich`` (default) — Rich Live transcript with reasoning and reply
+  panels. When stdout is piped (no --verbose), drops down to a "quiet"
+  variant that prints just the final reply text on stdout.
+- ``plain`` — raw streaming text. Content tokens go to stdout, reasoning
+  tokens go to stderr. No Rich, no panels, no markup. Pipeline-friendly.
+- ``json`` — newline-delimited JSON event stream on stdout. One event
+  per line: ``reasoning``, ``content``, ``done``, ``error``. Programmatic
+  consumers (tests, automation, frontends) should use this mode.
+
+The mode is selected by the CLI via mutually-exclusive ``--plain`` /
+``--json`` flags; without either, ``rich`` is used.
 """
 from __future__ import annotations
 
 import asyncio
+import json
 import sys
 from pathlib import Path
-from typing import IO, Optional
+from typing import IO, Literal, Optional
 
 from rich.console import Console, Group
 from rich.live import Live
@@ -18,6 +27,9 @@ from rich.markdown import Markdown
 from rich.panel import Panel
 
 from .config import load_agent_from_config
+
+
+OutputMode = Literal["rich", "plain", "json"]
 
 
 def _is_pipe(stream: IO) -> bool:
@@ -33,9 +45,114 @@ async def run_oneshot(
     *,
     model: Optional[str],
     prompt: str,
-    verbose: bool,
+    verbose: bool = False,
+    output: OutputMode = "rich",
 ) -> int:
     """Execute one agentic turn. Returns the desired process exit code."""
+    if output == "json":
+        return await _run_json(config_path, model=model, prompt=prompt)
+    if output == "plain":
+        return await _run_plain(config_path, model=model, prompt=prompt)
+    return await _run_rich(config_path, model=model, prompt=prompt, verbose=verbose)
+
+
+# --- json mode ----------------------------------------------------------
+
+
+async def _run_json(config_path: Path, *, model: Optional[str], prompt: str) -> int:
+    """NDJSON event stream on stdout. Best for tests and frontends."""
+
+    def emit(event: dict) -> None:
+        sys.stdout.write(json.dumps(event, ensure_ascii=False) + "\n")
+        sys.stdout.flush()
+
+    def on_token(t: str) -> None:
+        emit({"type": "content", "delta": t})
+
+    def on_reasoning_token(t: str) -> None:
+        emit({"type": "reasoning", "delta": t})
+
+    try:
+        config = load_agent_from_config(config_path)
+        bot = config.build(
+            model=model,
+            on_token=on_token,
+            on_reasoning_token=on_reasoning_token,
+        )
+    except Exception as e:
+        emit({"type": "error", "stage": "build", "message": str(e)})
+        return 2
+
+    try:
+        result = await bot.chat(prompt)
+        emit({"type": "done", "content": getattr(result, "content", "") or ""})
+        return 0
+    except asyncio.TimeoutError:
+        emit({"type": "error", "stage": "chat", "message": "timeout"})
+        return 2
+    except Exception as e:
+        emit({
+            "type": "error",
+            "stage": "chat",
+            "message": f"{type(e).__name__}: {e}",
+        })
+        return 2
+
+
+# --- plain mode ---------------------------------------------------------
+
+
+async def _run_plain(config_path: Path, *, model: Optional[str], prompt: str) -> int:
+    """Raw streaming text. Content → stdout, reasoning → stderr."""
+
+    def on_token(t: str) -> None:
+        sys.stdout.write(t)
+        sys.stdout.flush()
+
+    def on_reasoning_token(t: str) -> None:
+        sys.stderr.write(t)
+        sys.stderr.flush()
+
+    try:
+        config = load_agent_from_config(config_path)
+        bot = config.build(
+            model=model,
+            on_token=on_token,
+            on_reasoning_token=on_reasoning_token,
+        )
+    except Exception as e:
+        print(f"Failed to build agent: {e}", file=sys.stderr)
+        return 2
+
+    try:
+        await bot.chat(prompt)
+        # Trailing newlines so shells and pipes don't end mid-line.
+        sys.stdout.write("\n")
+        sys.stdout.flush()
+        sys.stderr.write("\n")
+        sys.stderr.flush()
+        return 0
+    except asyncio.TimeoutError:
+        print("\nLLM call timed out", file=sys.stderr)
+        return 2
+    except Exception as e:
+        print(f"\nLLM error: {type(e).__name__}: {e}", file=sys.stderr)
+        return 2
+
+
+# --- rich mode ----------------------------------------------------------
+
+
+async def _run_rich(
+    config_path: Path,
+    *,
+    model: Optional[str],
+    prompt: str,
+    verbose: bool,
+) -> int:
+    """Rich Live transcript. Falls back to bare-stdout 'quiet' mode when
+    stdout is piped and --verbose was not requested, so shell pipelines
+    get clean output."""
     pipe_mode = _is_pipe(sys.stdout)
     quiet = pipe_mode and not verbose
 
