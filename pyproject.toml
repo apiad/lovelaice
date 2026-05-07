@@ -8,7 +8,7 @@ authors = [
 ]
 requires-python = ">=3.13"
 dependencies = [
-    "lingo-ai==1.0",
+    "lingo-ai>=1.5.0",
     "python-dotenv>=1.2.1",
     "rich>=14.2.0",
     "typer>=0.21.1",
@@ -26,6 +26,9 @@ dev = [
     "pytest-asyncio>=0.24",
     "pytest-mock>=3.14",
 ]
+
+[tool.uv.sources]
+lingo-ai = { path = "../lingo", editable = true }
 
 [build-system]
 requires = ["hatchling"]
