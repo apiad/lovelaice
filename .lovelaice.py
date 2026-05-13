@@ -1,68 +1,60 @@
 import os
-from datetime import datetime
-import getpass
 
-from lingo import Context, Engine
 from lovelaice import Config
 
-
-# --- 1. Infrastructure ---
-# The first model in this dictionary is the default for all operations.
-# You can override this globally with the --model flag.
+# --- Models ---------------------------------------------------------------
+# All models go through OpenRouter. The first entry is the default; pick
+# another at runtime with `--model <alias>` (one-shot) or `/model` (TUI).
+# Add `thinking="low"|"medium"|"high"` (or an int token budget) on a model
+# entry to opt into reasoning passthrough.
 MODELS = {
-    "default": {
+    "fast": {
         "model": "google/gemini-2.5-flash",
-        "api_key": os.getenv("API_KEY"),
+        "api_key": os.getenv("OPENROUTER_API_KEY"),
         "base_url": "https://openrouter.ai/api/v1",
     },
-    # You can add more models here
-    # Ex: "pro": { ... } for a more expensive model
+    # Example: a reasoning-enabled alias
+    "pro": {
+        "model": "~google/gemini-pro-latest",
+        "api_key": os.getenv("OPENROUTER_API_KEY"),
+        "base_url": "https://openrouter.ai/api/v1",
+        "thinking": "high",
+    },
 }
 
-# You can give Lovelaice a custom prompt here.
-# The exact list of capabilities, tools, and security options
-# available are injected in runtime, so here you just need to
-# explain high-level interaction rules.
+# --- System prompt --------------------------------------------------------
+PROMPT = """
+You are Lovelaice, a sovereign coding agent that runs in the user's terminal.
+Be concise and act decisively. When a task is ambiguous, ask one focused
+question instead of guessing. Prefer surgical edits over full rewrites.
+""".strip()
 
-PROMPT = f"""
-You are Lovelaice, an AI engineering agent. You are empathetic, insightful,
-and designed to assist with coding, debugging, documentation, systems engineering,
-and any task performed via the CLI.
+# --- Build the config -----------------------------------------------------
+config = Config(
+    models=MODELS,
+    prompt=PROMPT,
+    # mcp=[{"name": "...", "command": "...", "args": [...]}],
+)
 
-Be concise but helpful. If a task is ambiguous, ask for clarification instead of guessing.
-"""
+# --- Default tools --------------------------------------------------------
+from lovelaice.tools import bash, read, write, edit, list_, glob, grep, fetch
 
-# --- 2. Instantiate the configuration ---
-# You don't usually need to touch this, we are just building
-# the Config instance passing all parameters
-config = Config(models=MODELS, prompt=PROMPT)
+config.tool(bash)
+config.tool(read)
+config.tool(write)
+config.tool(edit)
+config.tool(list_, name="list")
+config.tool(glob)
+config.tool(grep)
+config.tool(fetch)
 
-# --- 3. Register common tools ---
+# --- Default command: ReAct loop ------------------------------------------
+from lovelaice.commands import react
 
-# File system tools
-from lovelaice.tools.filesystem import list_dir, read_file, write_file, create_dir, delete_path
+config.command(react)
 
-config.tool(list_dir)
-config.tool(read_file)
-config.tool(write_file)
-config.tool(create_dir)
-config.tool(delete_path)
-
-# Bash-related tools
-from lovelaice.tools.shell import execute_command
-
-config.tool(execute_command)
-
-# --- 4. Register common skills ---
-
-from lovelaice.skills.basic import chat, basic
-
-# Register skills with the agent
-config.skill(chat)
-config.skill(basic)
-
-# --- 5. Custom tools and skills
-
-# Use @config.tool or @config.skill to add your own tools and skills here.
-
-# Refer to the docs for help <https://apiad.net/lovelaice>
+# --- Custom tools and commands --------------------------------------------
+# @config.tool
+# async def search_notes(query: str) -> str:
+#     """Search the user's notes for the given query."""
+#     ...
