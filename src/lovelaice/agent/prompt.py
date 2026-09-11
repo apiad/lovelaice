@@ -13,6 +13,7 @@ def assemble_system_prompt(
     tools: ToolRegistry,
     cwd: str,
     today: str | None = None,
+    list_tools: bool = True,
 ) -> str:
     """Assemble the system prompt from three blocks (base + tools + env).
 
@@ -21,13 +22,19 @@ def assemble_system_prompt(
         tools: ToolRegistry whose tool descriptions are listed in the prompt.
         cwd: Current working directory, shown in the environment block.
         today: Optional ISO date string; defaults to date.today().isoformat().
+        list_tools: List each tool as a one-liner in the prompt. Default True.
+            A model using native function-calling already receives the tool
+            list in the API `tools=` array, so this block restates it — and
+            when the caller has truncated descriptions to one line, it is
+            restated verbatim. Turn it off to stop paying for the same text
+            twice per turn.
 
     Returns:
         The assembled system prompt with trailing newline.
     """
     parts: list[str] = [base.rstrip()]
 
-    tool_list = tools.all()
+    tool_list = tools.all() if list_tools else []
     if tool_list:
         lines = ["Available tools:"]
         for at in tool_list:

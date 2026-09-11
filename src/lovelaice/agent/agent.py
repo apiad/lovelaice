@@ -39,6 +39,10 @@ class AgentConfig:
     repair_tool_calls: bool = False
     # Grounding context passed to the repair shot: "none" | "turn" | "full".
     repair_context: str = "turn"
+    # The `Available tools:` prompt block duplicates the API `tools=` array for
+    # models with native function-calling. On by default (no behaviour change);
+    # ainbox turns it off because its tool descriptions are already one-liners.
+    list_tools_in_prompt: bool = True
 
 
 def _build_llm(cfg: AgentConfig) -> LLM:
@@ -73,7 +77,8 @@ class Agent:
             registry.register(t)
         hooks = HookRegistry()
         sys_prompt = assemble_system_prompt(
-            base=config.system_prompt, tools=registry, cwd=config.cwd)
+            base=config.system_prompt, tools=registry, cwd=config.cwd,
+            list_tools=config.list_tools_in_prompt)
         llm = _build_llm(config)
         self.harness = Harness(
             llm=llm, tools=registry, hooks=hooks, system_prompt=sys_prompt,
@@ -121,7 +126,8 @@ class Agent:
             registry.register(t)
         hooks = HookRegistry()
         sys_prompt = assemble_system_prompt(
-            base=config.system_prompt, tools=registry, cwd=config.cwd)
+            base=config.system_prompt, tools=registry, cwd=config.cwd,
+            list_tools=config.list_tools_in_prompt)
         llm = _build_llm(config)
         agent.harness = Harness(
             llm=llm, tools=registry, hooks=hooks, system_prompt=sys_prompt,
