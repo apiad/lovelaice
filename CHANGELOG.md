@@ -1,3 +1,23 @@
+## 2.13.0 — 2026-09-11
+
+### Added
+
+- **`AgentConfig.list_tools_in_prompt` — stop paying for the tool list twice.**
+  `assemble_system_prompt` grew a keyword-only `list_tools: bool = True`, and
+  `AgentConfig` a matching `list_tools_in_prompt: bool = True` that is passed at
+  both construction paths (`Agent.__init__` and `Agent.from_conversation`). When
+  false, the `Available tools:` block is omitted; the base instructions and the
+  environment block are untouched.
+
+  A model using native function-calling already receives every tool's name,
+  description and JSON schema in the API `tools=` array. The prompt block
+  restates that list in prose on every turn — and a caller whose descriptions
+  are already one-liners pays for a near-verbatim duplicate. AInBox measured
+  5,393 chars per turn on this block alone, re-sent on each ReAct iteration.
+
+  Default `True`, so nothing changes for existing callers; turning it off is an
+  explicit opt-in by a caller that knows its descriptions are self-contained.
+
 ## 2.12.0 — 2026-08-01
 
 ### Added
