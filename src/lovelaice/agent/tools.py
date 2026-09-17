@@ -140,10 +140,22 @@ from pydantic import BaseModel, ValidationError, create_model  # noqa: E402
 def build_arg_model(tool: AgentTool) -> type[BaseModel]:
     """Build a Pydantic model matching the tool's parameter schema.
 
-    Reuses lingo's Tool.parameters() (name → type dict) to build a
-    Pydantic model whose fields are all required."""
+    Reuses lingo's Tool.parameters() (name → type dict). A parameter is
+    optional when the tool says so: it has a signature default
+    (``Tool.defaults()``), or the tool carries a JSON schema whose
+    ``required`` list does not name it (MCP-backed tools). Every other
+    parameter is required. Treating all of them as required rejected any call
+    that omitted an optional argument and cost a repair round trip."""
     params = tool.inner.parameters()
-    fields = {name: (ptype, ...) for name, ptype in params.items()}
+    defaults = tool.inner.defaults() or {}
+    schema = getattr(tool.inner, "json_schema", None)
+    schema_required = (set(schema.get("required") or [])
+                       if isinstance(schema, dict) and "properties" in schema else None)
+    fields = {}
+    for name, ptype in params.items():
+        optional = name in defaults or (schema_required is not None
+                                        and name not in schema_required)
+        fields[name] = (ptype | None, None) if optional else (ptype, ...)
     return create_model(f"{tool.name}_args", **fields)
 
 
@@ -156,6 +168,8 @@ def validate_args(tool: AgentTool, args: dict) -> dict | str:
     """
     try:
         model_cls = build_arg_model(tool)
-        return model_cls(**args).model_dump()
+        # exclude_unset: an omitted optional argument stays omitted, so the
+        # tool applies its own default instead of receiving an explicit None.
+        return model_cls(**args).model_dump(exclude_unset=True)
     except ValidationError as e:
         return f"argument validation failed: {e}"

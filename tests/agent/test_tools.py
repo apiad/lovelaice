@@ -113,3 +113,58 @@ def test_tool_result_from_exception():
     r = ToolResult.from_exception(RuntimeError("boom"))
     assert r.is_error is True
     assert r.content[0]["text"] == "RuntimeError: boom"
+
+
+# --- argument validation respects optional parameters --------------------------
+# Every parameter used to be required, so a call that left out an optional
+# argument (list_todos without `note`) failed validation and cost a repair call.
+# Found by AInBox's tool-reveal harness, 2026-09-17.
+
+from lingo.tools import Tool  # noqa: E402
+
+from lovelaice.agent.tools import validate_args  # noqa: E402
+
+
+class _SchemaTool(Tool):
+    """Shaped like an MCP-backed tool: a name->type map plus a JSON schema."""
+
+    def __init__(self):
+        super().__init__("list_todos", "List todos.")
+        self.json_schema = {
+            "type": "object",
+            "properties": {"vault_id": {"type": "string"},
+                           "note": {"type": "string", "default": None},
+                           "limit": {"type": "integer", "default": 50}},
+            "required": ["vault_id"],
+        }
+
+    def parameters(self):
+        return {"vault_id": str, "note": str, "limit": int}
+
+    async def run(self, **kwargs):
+        return kwargs
+
+
+def test_an_optional_schema_parameter_may_be_omitted():
+    out = validate_args(AgentTool(inner=_SchemaTool()), {"vault_id": "v1"})
+    assert out == {"vault_id": "v1"}   # omitted stays omitted: the tool applies its default
+
+
+def test_a_required_schema_parameter_is_still_required():
+    out = validate_args(AgentTool(inner=_SchemaTool()), {"note": "x"})
+    assert isinstance(out, str) and "vault_id" in out
+
+
+def test_an_optional_parameter_passed_explicitly_is_kept_and_typed():
+    out = validate_args(AgentTool(inner=_SchemaTool()), {"vault_id": "v1", "limit": "5"})
+    assert out == {"vault_id": "v1", "limit": 5}
+
+
+def test_a_signature_default_makes_a_native_tool_parameter_optional():
+    @lingo_tool
+    async def greet(name: str, punct: str = "!") -> str:
+        """Greet someone."""
+        return f"hi {name}{punct}"
+
+    assert validate_args(AgentTool(inner=greet), {"name": "ana"}) == {"name": "ana"}
+    assert isinstance(validate_args(AgentTool(inner=greet), {}), str)
