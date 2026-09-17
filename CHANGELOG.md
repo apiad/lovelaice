@@ -1,3 +1,17 @@
+## 2.13.1 — 2026-09-17
+
+### Fixed
+
+- **Optional tool arguments are no longer required.** `build_arg_model` made every
+  parameter required, so a tool call that left out an optional argument failed
+  `validate_args` and cost a repair round trip (or failed outright where the
+  repair call is unsupported). A parameter is now optional when the tool has a
+  signature default (`Tool.defaults()`) or carries a JSON schema whose `required`
+  list does not name it, which covers MCP-backed tools. Omitted arguments stay
+  omitted (`model_dump(exclude_unset=True)`), so the tool applies its own default.
+  Found by AInBox's tool-reveal harness: `list_todos(vault_id=...)` without `note`
+  was rejected.
+
 ## 2.13.0 — 2026-09-11
 
 ### Added
